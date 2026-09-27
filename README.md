@@ -128,6 +128,22 @@ Measured on the released weights:
 | render, INT8 | 124-frame 480x864 clip, 4-step DMD sampler: **38.4 dB PSNR against the reference checkpoint's render** (visually identical) |
 | render, NVFP4 | same structure, visibly softer: 11.73 GiB (−40 %) at 9.4 % weight error, 22.2 dB PSNR against the INT8 build |
 
+### Render timing
+
+`tools/time_checkpoints.py` runs the same 124-frame workflow (480x864, 4-step DMD, seed varied per
+run to defeat ComfyUI's per-node result cache) against each checkpoint on one RTX 5090 capped at
+400 W:
+
+| checkpoint | first run (loads the model) | steady state | weights staged in VRAM |
+|---|---|---|---|
+| reference `pruned_int8_convrot` | 61.1 s | 40.3 / 40.5 s | 19,995 MB |
+| this project, INT8 | 49.5 s | 40.6 / 40.7 s | 19,995 MB |
+| this project, NVFP4 | 47.2 s | 37.0 / 37.1 s | 11,944 MB |
+
+Inside a steady-state run: ~26-28 s for the three sampler steps and ~12-14 s for VAE decode plus
+muxing. The sampler is compute-bound at this sequence length (~50 k tokens), so INT8 and NVFP4
+land within noise of each other; NVFP4's win is size and 8 GB of VRAM, not speed.
+
 ## Status
 
 - [x] INT8 ConvRot conversion of MiniMax-H3 with analytic adaln curves
