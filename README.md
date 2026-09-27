@@ -198,6 +198,23 @@ Enable with `SLIMDIT_SOL_ATTN=1` before starting ComfyUI; the override prints
 how many calls took the sparse path. It only ever patches `comfy.ldm.minimax.model`, so other
 models in the same process are unaffected.
 
+**Strided q/k/v (measured, deferred).** The override hands the kernel three contiguous
+`(1, S, H, D)` tensors, materialised from the model's packed buffer. At the production shape
+(S = 30026, H = 56, D = 128, bf16) that costs `tools/measure_attn_copies.py`:
+
+| | |
+|---|---|
+| three copies per attention call | 1.71 ms, 1232 MiB moved |
+| over 300 calls per 124-frame render | **0.51 s** (≈1.5 % of the render) |
+| peak VRAM added | **+1.20 GiB** |
+
+So it is a *headroom* item, not a speed item: at 124 frames the render leaves ~1.3-1.6 GiB free on
+a 32 GiB card, and these copies are most of it. `tools/probe_sol_attn_strided.py` shows the kernel
+rejects the strided views outright (`RuntimeError: The size of tensor a (56) must match ...`), and
+`sol_attn` itself takes 75.8 ms/call at this shape — so removing the copies needs a kernel that
+reads the strided q/k/v in place, not a two-line change. Deferred; until then set
+`SLIMDIT_SOL_ATTN_MAX_SEQ` to fall back to dense attention on clips that would not fit.
+
 ## Notes
 
 The analytic construction here is *more* accurate than the reference `pruned_int8_convrot`
