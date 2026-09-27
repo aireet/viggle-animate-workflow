@@ -22,11 +22,12 @@ VAE = "minimax_h3_video_vae_fp16.safetensors"
 TEXT_COND = "fixed_embed_fwd_anyframe.safetensors"
 
 NOTE_ONECLICK = (
-    "一键版:两步就能出片。\n"
-    "  1. 左边放驱动视频 + 参考图(参考图最好是同一镜头里改绘的一帧)\n"
-    "  2. 点 Run,结果在右边,已带驱动视频的原声\n\n"
+    "一键版:三个输入进同一个节点,结果直接在那个节点上播放。\n"
+    "  1. 左边放驱动视频(它会同时给出画面和声音)和参考图(最好是同一镜头里改绘的一帧)\n"
+    "  2. 点 Run\n"
+    "  3. 生成节点自己就把 mp4 存好了(带驱动视频的原声),节点上直接能预览\n\n"
     "生成节点里的默认值 = 官方评测配置(3 步 / 124 帧 / shift 3/3)。\n"
-    "想看每一步在做什么、想改中间的数据流,用另一份「全流程版」。"
+    "想换权重/LoRA 就在节点的下拉里选;seed 默认 randomize,所以再点一次 Run 会真实重跑。"
 )
 
 
@@ -139,25 +140,24 @@ def loader_node(node_id: int, pos: list[int]) -> dict:
 
 def one_click(base: dict) -> None:
     g = Graph(base)
-    # Tight block so nothing hides behind the workflow panel; the saved view below then shows all
-    # five nodes and all four links the moment the workflow opens.
+    # Three nodes. Every wire ends on the generator: frames, the clip's audio and the still all go
+    # *into* it, and it muxes and saves the mp4 itself. The saved view keeps that readable.
     video = g.take("VHS_LoadVideo", [0, 0])
     video["size"] = [340, 280]
-    image = g.take("LoadImage", [0, 320])
+    image = g.take("LoadImage", [0, 340])
     image["size"] = [340, 330]
-    save = g.take("VHS_VideoCombine", [840, 0])
-    save["size"] = [400, 330]
     gen = g.add({
         "id": 100,
         "type": "ViggleAnimateSlimDiT",
-        "pos": [400, 60],
-        "size": [380, 300],
+        "pos": [470, 40],
+        "size": [380, 330],
         "flags": {},
         "order": 0,
         "mode": 0,
         "inputs": [
             {"name": "video", "type": "IMAGE", "link": None},
             {"name": "reference_image", "type": "IMAGE", "link": None},
+            {"name": "audio", "type": "AUDIO", "link": None, "shape": 7},
         ],
         "outputs": [{"name": "frames", "type": "IMAGE", "links": [], "slot_index": 0}],
         "properties": {"Node name for S&R": "ViggleAnimateSlimDiT"},
@@ -167,10 +167,9 @@ def one_click(base: dict) -> None:
         "bgcolor": "#653",
     })
     g.connect(video, "IMAGE", gen, "video")
+    g.connect(video, "audio", gen, "audio")
     g.connect(image, "IMAGE", gen, "reference_image")
-    g.connect(video, "audio", save, "audio")
-    g.connect(gen, "frames", save, "images")
-    g.save("viggle-animate-slimdit.json", NOTE_ONECLICK, ds={"scale": 0.6, "offset": [470, 80]}, note_pos=[400, 420])
+    g.save("viggle-animate-slimdit.json", NOTE_ONECLICK, ds={"scale": 0.8, "offset": [500, 80]}, note_pos=[470, 420])
 
 
 

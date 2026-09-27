@@ -2,7 +2,7 @@
  "id": "viggle-animate-slimdit",
  "revision": 0,
  "last_node_id": 101,
- "last_link_id": 4,
+ "last_link_id": 3,
  "nodes": [
   {
    "id": 3,
@@ -49,7 +49,7 @@
      "name": "audio",
      "type": "AUDIO",
      "links": [
-      3
+      2
      ]
     },
     {
@@ -81,7 +81,7 @@
    "type": "LoadImage",
    "pos": [
     0,
-    320
+    340
    ],
    "size": [
     340,
@@ -96,7 +96,7 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      2
+      3
      ]
     },
     {
@@ -118,84 +118,18 @@
    "bgcolor": "#535"
   },
   {
-   "id": 21,
-   "type": "VHS_VideoCombine",
+   "id": 100,
+   "type": "ViggleAnimateSlimDiT",
    "pos": [
-    840,
-    0
+    470,
+    40
    ],
    "size": [
-    400,
+    380,
     330
    ],
    "flags": {},
    "order": 2,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "images",
-     "type": "IMAGE",
-     "link": 4
-    },
-    {
-     "name": "audio",
-     "shape": 7,
-     "type": "AUDIO",
-     "link": 3
-    },
-    {
-     "name": "meta_batch",
-     "shape": 7,
-     "type": "VHS_BatchManager",
-     "link": null
-    },
-    {
-     "name": "vae",
-     "shape": 7,
-     "type": "VAE",
-     "link": null
-    }
-   ],
-   "outputs": [
-    {
-     "name": "Filenames",
-     "type": "VHS_FILENAMES",
-     "links": []
-    }
-   ],
-   "properties": {
-    "cnr_id": "comfyui-videohelpersuite",
-    "ver": "4d907bee61e92c2e65af3bd6383a4e4d356126d1",
-    "Node name for S&R": "VHS_VideoCombine"
-   },
-   "widgets_values": {
-    "frame_rate": 24,
-    "loop_count": 0,
-    "filename_prefix": "viggle/Viggle-Animate",
-    "format": "video/h264-mp4",
-    "pix_fmt": "yuv420p",
-    "crf": 18,
-    "save_metadata": true,
-    "trim_to_audio": false,
-    "pingpong": false,
-    "save_output": true
-   },
-   "color": "#222",
-   "bgcolor": "#000"
-  },
-  {
-   "id": 100,
-   "type": "ViggleAnimateSlimDiT",
-   "pos": [
-    400,
-    60
-   ],
-   "size": [
-    380,
-    300
-   ],
-   "flags": {},
-   "order": 3,
    "mode": 0,
    "inputs": [
     {
@@ -206,16 +140,20 @@
     {
      "name": "reference_image",
      "type": "IMAGE",
-     "link": 2
+     "link": 3
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": 2,
+     "shape": 7
     }
    ],
    "outputs": [
     {
      "name": "frames",
      "type": "IMAGE",
-     "links": [
-      4
-     ],
+     "links": [],
      "slot_index": 0
     }
    ],
@@ -242,7 +180,7 @@
    "id": 101,
    "type": "Note",
    "pos": [
-    400,
+    470,
     420
    ],
    "size": [
@@ -250,13 +188,13 @@
     160
    ],
    "flags": {},
-   "order": 4,
+   "order": 3,
    "mode": 0,
    "inputs": [],
    "outputs": [],
    "properties": {},
    "widgets_values": [
-    "\u4e00\u952e\u7248:\u4e24\u6b65\u5c31\u80fd\u51fa\u7247\u3002\n  1. \u5de6\u8fb9\u653e\u9a71\u52a8\u89c6\u9891 + \u53c2\u8003\u56fe(\u53c2\u8003\u56fe\u6700\u597d\u662f\u540c\u4e00\u955c\u5934\u91cc\u6539\u7ed8\u7684\u4e00\u5e27)\n  2. \u70b9 Run,\u7ed3\u679c\u5728\u53f3\u8fb9,\u5df2\u5e26\u9a71\u52a8\u89c6\u9891\u7684\u539f\u58f0\n\n\u751f\u6210\u8282\u70b9\u91cc\u7684\u9ed8\u8ba4\u503c = \u5b98\u65b9\u8bc4\u6d4b\u914d\u7f6e(3 \u6b65 / 124 \u5e27 / shift 3/3)\u3002\n\u60f3\u770b\u6bcf\u4e00\u6b65\u5728\u505a\u4ec0\u4e48\u3001\u60f3\u6539\u4e2d\u95f4\u7684\u6570\u636e\u6d41,\u7528\u53e6\u4e00\u4efd\u300c\u5168\u6d41\u7a0b\u7248\u300d\u3002"
+    "\u4e00\u952e\u7248:\u4e09\u4e2a\u8f93\u5165\u8fdb\u540c\u4e00\u4e2a\u8282\u70b9,\u7ed3\u679c\u76f4\u63a5\u5728\u90a3\u4e2a\u8282\u70b9\u4e0a\u64ad\u653e\u3002\n  1. \u5de6\u8fb9\u653e\u9a71\u52a8\u89c6\u9891(\u5b83\u4f1a\u540c\u65f6\u7ed9\u51fa\u753b\u9762\u548c\u58f0\u97f3)\u548c\u53c2\u8003\u56fe(\u6700\u597d\u662f\u540c\u4e00\u955c\u5934\u91cc\u6539\u7ed8\u7684\u4e00\u5e27)\n  2. \u70b9 Run\n  3. \u751f\u6210\u8282\u70b9\u81ea\u5df1\u5c31\u628a mp4 \u5b58\u597d\u4e86(\u5e26\u9a71\u52a8\u89c6\u9891\u7684\u539f\u58f0),\u8282\u70b9\u4e0a\u76f4\u63a5\u80fd\u9884\u89c8\n\n\u751f\u6210\u8282\u70b9\u91cc\u7684\u9ed8\u8ba4\u503c = \u5b98\u65b9\u8bc4\u6d4b\u914d\u7f6e(3 \u6b65 / 124 \u5e27 / shift 3/3)\u3002\n\u60f3\u6362\u6743\u91cd/LoRA \u5c31\u5728\u8282\u70b9\u7684\u4e0b\u62c9\u91cc\u9009;seed \u9ed8\u8ba4 randomize,\u6240\u4ee5\u518d\u70b9\u4e00\u6b21 Run \u4f1a\u771f\u5b9e\u91cd\u8dd1\u3002"
    ],
    "color": "#432",
    "bgcolor": "#653",
@@ -274,26 +212,18 @@
   ],
   [
    2,
+   3,
+   2,
+   100,
+   2,
+   "AUDIO"
+  ],
+  [
+   3,
    5,
    0,
    100,
    1,
-   "IMAGE"
-  ],
-  [
-   3,
-   3,
-   2,
-   21,
-   1,
-   "AUDIO"
-  ],
-  [
-   4,
-   100,
-   0,
-   21,
-   0,
    "IMAGE"
   ]
  ],
@@ -301,9 +231,9 @@
  "config": {},
  "extra": {
   "ds": {
-   "scale": 0.6,
+   "scale": 0.8,
    "offset": [
-    470,
+    500,
     80
    ]
   }

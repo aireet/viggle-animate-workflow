@@ -311,20 +311,22 @@ def _node_call(cls, **inputs):
 
 
 class ViggleAnimateSlimDiT:
-    """The whole Viggle-Animate render behind two inputs and a Run.
+    """The whole Viggle-Animate render behind three inputs and a Run.
 
-    Same pipeline as the vendor six-node chain, called directly: driving clip scaled to 0.4 MP,
-    frozen text conditioning, vendor conditioning build, SlimDiT weights + shift, euler sampler
-    with the 3/4/6-step schedule, VAE decode. It exists because the graph was doing nothing for
-    the person using it -- every knob here has the value the evaluated configuration uses.
+    Driving video, reference still and the driving clip's audio all go *into* this node; it runs the
+    vendor chain (clip scaled to 0.4 MP, frozen text conditioning, vendor conditioning build, SlimDiT
+    weights + shift, euler sampler on the 3/4/6-step schedule, VAE decode), muxes the audio with the
+    frames exactly as the H.264 save node does, and shows the result on itself -- so the graph is
+    three nodes and every wire ends here.
     """
 
     CATEGORY = "slimdit"
     FUNCTION = "run"
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("frames",)
+    OUTPUT_NODE = True
     DESCRIPTION = (
-        "Viggle-Animate in one node: driving video + reference still -> frames. "
+        "Viggle-Animate in one node: driving video + driving audio + reference still -> finished mp4. "
         "Defaults are the evaluated configuration (124 frames, 3 steps, shift 3/3)."
     )
 
@@ -357,10 +359,13 @@ class ViggleAnimateSlimDiT:
                 "text_cond": (text_conds, {"default": first(text_conds, "fixed_embed") or (text_conds[0] if text_conds else "")}),
                 "shift_video": ("FLOAT", {"default": 3.0, "min": 0.01, "max": 100.0, "step": 0.01}),
                 "shift_audio": ("FLOAT", {"default": 3.0, "min": 0.01, "max": 100.0, "step": 0.01}),
-            }
+            },
+            "optional": {
+                "audio": ("AUDIO", {"tooltip": "The driving clip's audio, muxed into the mp4 (Load Video's audio output)."}),
+            },
         }
 
-    def run(self, video, reference_image, steps, length, seed, checkpoint, lora, vae, text_cond, shift_video, shift_audio):
+    def run(self, video, reference_image, steps, length, seed, checkpoint, lora, vae, text_cond, shift_video, shift_audio, audio=None):
         import torch
 
         import comfy.samplers
@@ -412,9 +417,36 @@ class ViggleAnimateSlimDiT:
         )
         images, = _node_call(comfy_nodes.VAEDecode, samples=sampled[0], vae=vae_model)
 
+        # Mux and save exactly as the H.264 save node does (same widget values as the vendor
+        # workflow, including the driving clip's audio), so the result plays on this node and the
+        # file lands in the output folder. A mux failure must not throw away a finished render.
+        ui: dict = {}
+        if "VHS_VideoCombine" in registry:
+            try:
+                combined = _node_call(
+                    registry["VHS_VideoCombine"],
+                    images=images,
+                    audio=audio,
+                    frame_rate=24,
+                    loop_count=0,
+                    filename_prefix="viggle/Viggle-Animate",
+                    format="video/h264-mp4",
+                    pix_fmt="yuv420p",
+                    crf=18,
+                    save_metadata=True,
+                    pingpong=False,
+                    trim_to_audio=False,
+                    save_output=True,
+                )
+                ui = combined.get("ui", {}) if isinstance(combined, dict) else {}
+            except Exception as exc:  # noqa: BLE001 - keep the frames even if the mux fails
+                print(f"[slimdit/viggle] mux/save failed ({type(exc).__name__}: {exc}); frames returned unwrapped", flush=True)
+        else:
+            print("[slimdit/viggle] VHS_VideoCombine not installed; frames returned unwrapped", flush=True)
+
         text_out = f"{checkpoint} · lora={lora} · {int(steps)} steps {format_sigmas(values).strip()} · {frames} frames · seed {int(seed)}"
         print(f"[slimdit/viggle] {text_out}", flush=True)
-        return {"ui": {"text": [text_out]}, "result": (images,)}
+        return {"ui": {**ui, "text": [text_out]}, "result": (images,)}
 
 
 NODE_CLASS_MAPPINGS = {
