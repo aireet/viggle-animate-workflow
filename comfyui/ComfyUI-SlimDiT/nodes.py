@@ -350,7 +350,7 @@ class ViggleAnimateH3:
                 "video": ("IMAGE", {"tooltip": "Driving video frames at 24 fps (Load Video). Supplies motion, camera, background."}),
                 "reference_image": ("IMAGE", {"tooltip": "Single still of the person to place in the video. A repainted frame of the same shot works best."}),
                 "audio": ("AUDIO", {"tooltip": "The driving clip's audio (Load Video's audio output); carried through to the save node."}),
-                "steps": (["3", "4", "6"], {"default": "3", "tooltip": "3 is what the finetune and the DMD LoRA were distilled for."}),
+                "steps": (["3", "4", "6"], {"default": "6", "tooltip": "3 is what the finetune and the DMD LoRA were distilled for; 6 doubles the sampler steps."}),
                 "length": ("INT", {"default": 124, "min": 5, "max": 3600, "step": 17,
                                    "tooltip": "Frames at 24 fps, snapped to the 17k+5 grid (124 = ~5.2 s). Clamped to the driving clip's own length."}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF, "control_after_generate": True}),

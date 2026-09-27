@@ -197,7 +197,7 @@ def one_click(base: dict) -> None:
             {"name": "audio", "type": "AUDIO", "links": [], "slot_index": 1},
         ],
         "properties": {"Node name for S&R": "ViggleAnimateH3"},
-        "widgets_values": ["3", 124, 0, "randomize", TEXT_COND, 3.0, 3.0],
+        "widgets_values": ["6", 124, 0, "randomize", TEXT_COND, 3.0, 3.0],
         "title": "viggle-animate-h3",
         "color": "#432",
         "bgcolor": "#653",
