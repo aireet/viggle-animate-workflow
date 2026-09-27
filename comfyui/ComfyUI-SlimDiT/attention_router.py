@@ -77,15 +77,21 @@ class RouterConfig:
     """
 
     def __init__(self, min_seq=12000, max_sol_frames=243, reserve_gib=1.5, safety=1.15,
-                 memory_guard=True):
+                 memory_guard=True, over_budget_choice="dense", short_seq_choice="dense"):
         self.min_seq = min_seq
         self.max_sol_frames = max_sol_frames
         self.reserve_gib = reserve_gib
         self.safety = safety
         self.memory_guard = memory_guard
+        # Measured at 372 frames on a 32 GiB card: dense 26.1 GiB / clean, the in-place int8
+        # kernel 31.8 GiB / ghosting. So when sol does not fit, dense is both the safest and
+        # the cleaner choice; the kernel stays reachable via SLIMDIT_ATTN=triton.
+        self.over_budget_choice = over_budget_choice
+        self.short_seq_choice = short_seq_choice
 
     def describe(self):
-        return {"min_seq": self.min_seq, "max_sol_frames": self.max_sol_frames}
+        return {"min_seq": self.min_seq, "max_sol_frames": self.max_sol_frames,
+                "over_budget": self.over_budget_choice, "short_seq": self.short_seq_choice}
 
 
 class AttentionRouter:
@@ -148,15 +154,15 @@ class AttentionRouter:
         if geometry is None:
             return "dense"
         if self._sol is None or geometry["seq"] < self.config.min_seq:
-            return "triton"
+            return self.config.short_seq_choice
         if self._frames is not None and self._frames > self.config.max_sol_frames:
-            return "triton"  # this length is known not to fit; do not even try
+            return self.config.over_budget_choice  # this length is known not to fit; do not even try
         if not self.config.memory_guard:
             return "sol"
         copies = 3 * geometry["seq"] * heads * geometry["dim"] * 2
         need = copies * self.config.safety + self.config.reserve_gib * 2 ** 30
         free, _ = self._free_bytes()
-        return "sol" if free >= need else "triton"
+        return "sol" if free >= need else self.config.over_budget_choice
 
     def __call__(self, q, k, v, heads, mask=None, skip_reshape=False, skip_output_reshape=False, **kwargs):
         started = time.perf_counter()
@@ -180,7 +186,7 @@ class AttentionRouter:
                 # needs no copies at all rather than failing the request
                 self.stats["sol_oom"] += 1
                 self._empty_cache()
-                choice = "triton"
+                choice = self.config.over_budget_choice
 
         if choice == "triton":
             out = self._triton(q_t, k_t, v_t, heads, mask=None, skip_reshape=True,

@@ -441,7 +441,7 @@
    ],
    "color": "#232",
    "bgcolor": "#353",
-   "title": "shift 3/3"
+   "title": "\u65f6\u95f4\u6b65\u504f\u79fb(\u89c6\u9891/\u97f3\u9891\u5404 3)"
   },
   {
    "id": 9,
@@ -479,7 +479,7 @@
    ],
    "color": "#432",
    "bgcolor": "#653",
-   "title": "euler"
+   "title": "\u91c7\u6837\u5668 euler(\u4e0d\u7528\u52a8)"
   },
   {
    "id": 10,
@@ -522,7 +522,7 @@
   },
   {
    "id": 50,
-   "type": "ManualSigmas",
+   "type": "SlimDiTSigmas",
    "pos": [
     980,
     750
@@ -532,7 +532,7 @@
     110
    ],
    "flags": {
-    "collapsed": true
+    "collapsed": false
    },
    "order": 11,
    "mode": 0,
@@ -552,9 +552,12 @@
     "Node name for S&R": "ManualSigmas"
    },
    "widgets_values": [
-    "1.0, 0.8571428571428571, 0.6, 0.0"
+    "3",
+    3.0
    ],
-   "title": "4 \u6b65 sigmas"
+   "title": "\u2461 \u6b65\u6570(3=\u4e0a\u6e38\u9ed8\u8ba4 / 6=\u66f4\u6162)",
+   "color": "#432",
+   "bgcolor": "#653"
   },
   {
    "id": 11,
@@ -600,7 +603,7 @@
    },
    "color": "#232",
    "bgcolor": "#353",
-   "title": "guider"
+   "title": "\u5f15\u5bfc:\u6bcf\u6b65\u8c03\u6a21\u578b(\u4e0d\u7528\u52a8)"
   },
   {
    "id": 12,
@@ -989,7 +992,7 @@
     920,
     160,
     430,
-    980
+    870
    ],
    "color": "#533",
    "font_size": 24

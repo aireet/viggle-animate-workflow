@@ -207,8 +207,18 @@ kernel quantizes in place and therefore runs where sol cannot. The router choose
 
 * `sol` when the clip is short (<= 243 frames) **and** measured free memory covers the copies
   (with a 1.5 GiB reserve and a 1.15x safety factor),
-* `triton` otherwise, and as the automatic fallback if sol still raises out-of-memory,
-* `dense` for anything the router does not recognise (a mask, a non-packed call, short sequences).
+* `dense` otherwise -- measured at 372 frames on a 32 GiB card: dense runs at **26.1 GiB and comes
+  out clean**, while the in-place kernel takes **31.8 GiB and shows ghosting** from ~frame 124 on
+  (the same clip through dense attention is sharp). So when sol cannot fit, dense is both the
+  safer and the cleaner branch; the kernel is still reachable with `SLIMDIT_ATTN=triton` (it is
+  ~20 % faster than dense: 224 s vs 280 s at 372 frames) and is the branch that needs the
+  smoothing stage the earlier investigation already scoped.
+
+Step count is a graph choice, not a hard-coded list: `SlimDiTSigmas` outputs the schedule for
+3 / 4 / 6 steps. The upstream four-point list is a uniform grid through Comfy's sigma shift with
+`shift=3` (`2/3 -> 0.857142857`, `1/3 -> 0.6`, exact), so the 6-step option is the same shift on a
+7-point grid -- `1.0, 0.9375, 0.857142857, 0.75, 0.6, 0.375, 0.0`. 3 steps (three Euler updates)
+is what the finetune ships with and what the DMD LoRA was distilled for.
 
 Enable with `SLIMDIT_ATTN=auto` before starting ComfyUI (`sol` / `triton` / `off` force one branch);
 the legacy `VIGGLE_ATTN`, `VIGGLE_SOL_ATTN` and `VIGGLE_TRITON_ATTN` names still work. The router

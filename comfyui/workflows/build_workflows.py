@@ -30,7 +30,7 @@ LAYOUT = {
     "MiniMaxH3SigmaShift": (2, 2, True),
     "RandomNoise": (2, 3, False),
     "KSamplerSelect": (2, 4, True),
-    "ManualSigmas": (2, 5, True),
+    "SlimDiTSigmas": (2, 5, False),
     "BasicGuider": (3, 0, True),
     "SamplerCustomAdvanced": (3, 1, False),
     # stage 3: output
@@ -48,11 +48,11 @@ TITLES = {
     "VAELoader": "视频 VAE",
     "UNETLoader": "SlimDiT int8 权重",
     "LoraLoaderModelOnly": "DMD LoRA",
-    "MiniMaxH3SigmaShift": "shift 3/3",
+    "MiniMaxH3SigmaShift": "时间步偏移(视频/音频各 3)",
     "RandomNoise": "② 噪声种子(改它=重新生成)",
-    "KSamplerSelect": "euler",
-    "ManualSigmas": "4 步 sigmas",
-    "BasicGuider": "guider",
+    "KSamplerSelect": "采样器 euler(不用动)",
+    "SlimDiTSigmas": "② 步数(3=上游默认 / 6=更慢)",
+    "BasicGuider": "引导:每步调模型(不用动)",
     "SamplerCustomAdvanced": "② 采样(4 步)",
     "VAEDecode": "VAE 解码",
     "VHS_VideoCombine": "③ 保存 mp4 (24fps)",
@@ -76,7 +76,14 @@ def build(src: Path, dst: Path, kind: str) -> None:
     groups = []
     bbox = {}
 
+    # Swap the vendor's hard-coded sigma list for our step-selectable node. The node id is kept,
+    # so the existing link into SamplerCustomAdvanced stays valid.
+    renames = {"ManualSigmas": "SlimDiTSigmas"}
+
     for node in wf["nodes"]:
+        if node["type"] in renames:
+            node["type"] = renames[node["type"]]
+            node["widgets_values"] = ["3", 3.0]
         spec = LAYOUT.get(node["type"])
         if spec is None:
             continue

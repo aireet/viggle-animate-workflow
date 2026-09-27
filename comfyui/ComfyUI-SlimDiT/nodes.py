@@ -168,16 +168,69 @@ class SlimDiTSolAttnStats:
         return {"ui": {"text": [text]}, "result": (text,)}
 
 
+class SlimDiTSigmas:
+    """MiniMax-H3 sigma schedule with a step-count choice.
+
+    The upstream four-point list ``1.0, 0.8571428571428571, 0.6, 0.0`` is a uniform grid pushed
+    through Comfy's sigma shift (``shift=3``): ``2/3 -> 0.857142857`` and ``1/3 -> 0.6`` to the
+    digit, so a different step count is just a different grid length through the same shift -- no
+    other scheduler node needed.
+
+    3 steps is what the finetune ships with (four sigma points = three Euler updates). 6 steps
+    doubles the sampling time and is outside what the DMD LoRA was distilled for.
+    """
+
+    CATEGORY = "slimdit"
+    FUNCTION = "run"
+    RETURN_TYPES = ("SIGMAS",)
+    RETURN_NAMES = ("sigmas",)
+    OUTPUT_NODE = True
+    DESCRIPTION = (
+        "3 = upstream default (four-point schedule, three Euler updates). 6 = twice the sampling "
+        "time, for comparison -- the DMD LoRA was distilled for the few-step regime."
+    )
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "steps": (["3", "4", "6"], {"default": "3"}),
+                "shift": ("FLOAT", {"default": 3.0, "min": 0.1, "max": 20.0, "step": 0.1}),
+            }
+        }
+
+    def run(self, steps, shift):
+        import torch
+
+        try:
+            from slimdit.sigmas import format_sigmas, h3_sigmas
+        except ImportError:  # standalone/vendored install: same formula, kept in sync by tests
+
+            def h3_sigmas(count, shifted):
+                return [shifted * (i / count) / (1.0 + (shifted - 1.0) * (i / count)) for i in range(count, -1, -1)]
+
+            def format_sigmas(values):
+                return ", ".join(f"{value:.6g}" for value in values)
+
+        count = int(steps)
+        values = h3_sigmas(count, float(shift))
+        text = f"{count} steps (shift {shift}): {format_sigmas(values)}"
+        print(f"[slimdit/sigmas] {text}", flush=True)
+        return {"ui": {"text": [text]}, "result": (torch.tensor(values, dtype=torch.float32),)}
+
+
 NODE_CLASS_MAPPINGS = {
     "SlimDiTConvert": SlimDiTConvert,
     "SlimDiTInspect": SlimDiTInspect,
     "SlimDiTSolAttnStats": SlimDiTSolAttnStats,
+    "SlimDiTSigmas": SlimDiTSigmas,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SlimDiTConvert": "SlimDiT Convert (INT8 + curves)",
     "SlimDiTInspect": "SlimDiT Inspect Checkpoint",
     "SlimDiTSolAttnStats": "SlimDiT Attention Override Stats",
+    "SlimDiTSigmas": "SlimDiT Sigmas (3 / 4 / 6 steps)",
 }
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
