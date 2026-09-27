@@ -81,6 +81,38 @@ python tools/verify_checkpoint.py --checkpoint ours.safetensors --reference refe
 It dequantizes INT8 tensors on both sides and reports the worst per-tensor deviations, which is
 how the fc1 swap above was found.
 
+### ComfyUI caches models by name and size
+
+Re-converting under the same filename can silently keep serving the *old* model: the rewritten
+file has the same size (same tensors, same shapes), so the cached entry still matches and renders
+keep using the previous weights. When validating a re-conversion, write to a new name (or restart
+the server). This cost us a full debug cycle — the rendered noise was from the cached file, not
+from the new weights.
+
+## Verification
+
+Three checks, in increasing strength — run all three before publishing a checkpoint:
+
+1. **Layout parity** — `python3 tools/compare_manifest.py ours.safetensors reference.safetensors`.
+   Every tensor name, dtype and shape must match a known-good release (936 tensors / 19.59 GiB
+   for MiniMax-H3).
+2. **Content parity** — `python tools/verify_checkpoint.py --checkpoint ours.safetensors
+   --reference reference.safetensors`. Dequantizes INT8 on both sides and prints the worst
+   per-tensor deviations; the two files should agree to ~1 % (INT8 noise). This is the check that
+   catches reordering mistakes, which headers cannot see.
+3. **Conversion error** — `python tools/verify_checkpoint.py --checkpoint ours.safetensors
+   --official /models/viggle-official`. Measures INT8 error per layer (0.9 %) and the adaln curve
+   fit (0.019 % of the modulation family, 0.064 % at the four timesteps the 4-step sampler uses).
+
+Measured on the released weights:
+
+| check | result |
+|---|---|
+| file vs reference checkpoint | 936 tensors, same dtypes/shapes, values agree to 0.78 % |
+| INT8 weight error | 0.88-0.94 % per layer |
+| curve modulation error | 0.019 % (grid) / 0.064 % (sampled timesteps) |
+| render | 124-frame 480x864 clip, 4-step DMD sampler: **38.4 dB PSNR against the reference checkpoint's render** (visually identical) |
+
 ## Status
 
 - [x] INT8 ConvRot conversion of MiniMax-H3 with analytic adaln curves
