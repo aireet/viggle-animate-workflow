@@ -103,6 +103,33 @@ keep using the previous weights. When validating a re-conversion, write to a new
 the server). This cost us a full debug cycle — the rendered noise was from the cached file, not
 from the new weights.
 
+## ComfyUI node pack
+
+The pack (`comfyui/ComfyUI-SlimDiT/`) ships **one** node. `SlimDiT Loader` (weights + LoRA + VAE +
+steps) takes the six things a MiniMax-H3 graph otherwise needs -- `Load Diffusion Model`,
+`Load LoRA (Model Only)`, `Load VAE`, `MiniMaxH3SigmaShift`, a sampler choice and a sigma list --
+and exposes them as the dropdowns you already expect, plus the 3 / 4 / 6 step choice. It calls
+ComfyUI's own loader implementations, so the loaded model is bit-identical to wiring it by hand.
+
+The shipped workflow (`comfyui/workflows/viggle-animate-slimdit-int8.json`, 12 nodes against the
+vendor graph's 17) is three stages: inputs, render, output. Only four widgets are meant to move --
+driving video, reference image, step count and seed; the helper nodes sit collapsed. Regenerate it
+with `python3 comfyui/workflows/build_workflows.py`, which folds the six nodes into the loader and
+re-points every link by source type (the validator in that directory checks link and type integrity
+against the base workflow).
+
+Conversion and inspection nodes (`SlimDiT Convert`, `SlimDiT Inspect`, `SlimDiT Sigmas`,
+`SlimDiT Attention Override Stats`) are developer tools and stay out of the node library unless
+`SLIMDIT_DEV_NODES=1` is set.
+
+Deployment: copy the pack **and** the `slimdit/` package into it, or the node cannot import the
+sigma math --
+
+```sh
+scp -r comfyui/ComfyUI-SlimDiT slimdit host:/tmp/ && ssh host \
+  'cp -r /tmp/ComfyUI-SlimDiT ~/ComfyUI/custom_nodes/ && cp -r /tmp/slimdit ~/ComfyUI/custom_nodes/ComfyUI-SlimDiT/slimdit'
+```
+
 ## Verification
 
 Three checks, in increasing strength — run all three before publishing a checkpoint:
@@ -147,10 +174,10 @@ land within noise of each other; NVFP4's win is size and 8 GB of VRAM, not speed
 ## Status
 
 - [x] INT8 ConvRot conversion of MiniMax-H3 with analytic adaln curves
-- [x] NVFP4 variant (`--quant nvfp4`, 11.7 GiB instead of 19.6 GiB, softer renders)
-- [x] ComfyUI node: convert + inspect checkpoints from inside the graph
-- [x] Attention router shipped in the node pack (sol <=243 frames, in-place Triton kernel beyond, dense fallback), opt-in
-- [ ] Mixed INT8/NVFP4: keep sensitive blocks in INT8, NVFP4 for the rest
+- [x] ComfyUI node pack: a single `SlimDiT Loader` node and a 12-node three-stage workflow
+- [x] Attention router in the node pack (sol below the copy budget, dense when it does not fit, in-place Triton kernel behind `SLIMDIT_ATTN=triton`), opt-in
+- [x] NVFP4 variant (`--quant nvfp4`, 11.7 GiB instead of 19.6 GiB, softer renders) -- kept in the converter, dropped as a direction
+- [ ] Mixed INT8/NVFP4: not pursued (the NVFP4 direction was dropped)
 
 ## Notes on kernels
 
@@ -214,16 +241,17 @@ kernel quantizes in place and therefore runs where sol cannot. The router choose
   ~20 % faster than dense: 224 s vs 280 s at 372 frames) and is the branch that needs the
   smoothing stage the earlier investigation already scoped.
 
-Step count is a graph choice, not a hard-coded list: `SlimDiTSigmas` outputs the schedule for
-3 / 4 / 6 steps. The upstream four-point list is a uniform grid through Comfy's sigma shift with
+Step count is a widget on the loader, not a hard-coded list: it emits the schedule for 3 / 4 / 6
+steps. The upstream four-point list is a uniform grid through Comfy's sigma shift with
 `shift=3` (`2/3 -> 0.857142857`, `1/3 -> 0.6`, exact), so the 6-step option is the same shift on a
 7-point grid -- `1.0, 0.9375, 0.857142857, 0.75, 0.6, 0.375, 0.0`. 3 steps (three Euler updates)
 is what the finetune ships with and what the DMD LoRA was distilled for.
 
 Enable with `SLIMDIT_ATTN=auto` before starting ComfyUI (`sol` / `triton` / `off` force one branch);
 the legacy `VIGGLE_ATTN`, `VIGGLE_SOL_ATTN` and `VIGGLE_TRITON_ATTN` names still work. The router
-prints its install line at startup, and `SlimDiT Attention Override Stats` reports how many calls
-each branch took plus any sol->kernel OOM fallbacks. It only ever patches
+prints its install line at startup; with `SLIMDIT_DEV_NODES=1` the `SlimDiT Attention Override
+Stats` node reports how many calls each branch took plus any sol->kernel OOM fallbacks. It only
+ever patches
 `comfy.ldm.minimax.model.optimized_attention`, so other models in the same process are unaffected.
 
 **Why the copies matter (and why the router is the answer).** sol_attn hands the kernel three

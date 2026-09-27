@@ -219,18 +219,110 @@ class SlimDiTSigmas:
         return {"ui": {"text": [text]}, "result": (torch.tensor(values, dtype=torch.float32),)}
 
 
+def _apply_sigma_shift(model, shift_video, shift_audio):
+    """Apply ComfyUI's MiniMax-H3 sampling shift. Raises rather than skipping: silently dropping it
+    would change the schedule while still rendering, which looks like a quality regression."""
+    from comfy_extras.nodes_minimax_h3 import MiniMaxH3SigmaShift
+
+    out = MiniMaxH3SigmaShift.execute(model, shift_video, shift_audio)
+    return out.result[0] if hasattr(out, "result") else out[0]
+
+
+class SlimDiTLoader:
+    """Everything the model side needs in one node: weights, LoRA, VAE, shifts, step count.
+
+    Wiring this by hand takes six nodes (UNETLoader + LoraLoaderModelOnly + VAELoader +
+    MiniMaxH3SigmaShift + KSamplerSelect + a sigma list); here it is one node with the same
+    dropdowns you expect from a checkpoint loader, plus the step-count choice. It calls ComfyUI's
+    own loader implementations, so behaviour is identical to wiring them yourself.
+    """
+
+    CATEGORY = "slimdit"
+    FUNCTION = "run"
+    RETURN_TYPES = ("MODEL", "VAE", "SIGMAS", "SAMPLER")
+    RETURN_NAMES = ("model", "vae", "sigmas", "sampler")
+    DESCRIPTION = (
+        "Pick the SlimDiT checkpoint (or any other MiniMax-H3 one), the DMD LoRA and the VAE, "
+        "choose 3 / 4 / 6 sampling steps, and it outputs the patched model, sigmas and sampler."
+    )
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        try:
+            import folder_paths
+
+            checkpoints = folder_paths.get_filename_list("diffusion_models")
+            loras = folder_paths.get_filename_list("loras")
+            vaes = folder_paths.get_filename_list("vae")
+        except Exception:  # noqa: BLE001 - outside ComfyUI
+            checkpoints, loras, vaes = [], [], []
+
+        def first(items, needle):
+            return next((i for i in items if needle in i.lower()), None)
+
+        return {
+            "required": {
+                "checkpoint": (
+                    checkpoints,
+                    {"default": first(checkpoints, "slimdit") or (checkpoints[0] if checkpoints else "")},
+                ),
+                "lora": (["(none)"] + loras, {"default": first(loras, "viggle") or "(none)"}),
+                "vae": (vaes, {"default": first(vaes, "minimax") or first(vaes, "h3") or (vaes[0] if vaes else "")}),
+                "steps": (["3", "4", "6"], {"default": "3"}),
+                "shift_video": ("FLOAT", {"default": 3.0, "min": 0.01, "max": 100.0, "step": 0.01}),
+                "shift_audio": ("FLOAT", {"default": 3.0, "min": 0.01, "max": 100.0, "step": 0.01}),
+            }
+        }
+
+    def run(self, checkpoint, lora, vae, steps, shift_video, shift_audio):
+        import torch
+
+        import comfy.samplers
+        import nodes as comfy_nodes  # ComfyUI's own loader implementations
+
+        model, = comfy_nodes.UNETLoader().load_unet(checkpoint, "default")
+        if lora and lora != "(none)":
+            model, = comfy_nodes.LoraLoaderModelOnly().load_lora_model_only(model, lora, 1.0)
+        vae_out, = comfy_nodes.VAELoader().load_vae(vae)
+        sampler = comfy.samplers.sampler_object("euler")
+        model = _apply_sigma_shift(model, float(shift_video), float(shift_audio))
+
+        from slimdit.sigmas import format_sigmas, h3_sigmas
+
+        values = h3_sigmas(int(steps), float(shift_video))
+        sigmas = torch.tensor(values, dtype=torch.float32)
+        text = f"{checkpoint} · lora={lora} · vae={vae}\n{int(steps)} steps: {format_sigmas(values)}"
+        print(f"[slimdit/loader] {text}", flush=True)
+        return {"ui": {"text": [text]}, "result": (model, vae_out, sigmas, sampler)}
+
+
 NODE_CLASS_MAPPINGS = {
-    "SlimDiTConvert": SlimDiTConvert,
-    "SlimDiTInspect": SlimDiTInspect,
-    "SlimDiTSolAttnStats": SlimDiTSolAttnStats,
-    "SlimDiTSigmas": SlimDiTSigmas,
+    "SlimDiTLoader": SlimDiTLoader,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SlimDiTConvert": "SlimDiT Convert (INT8 + curves)",
-    "SlimDiTInspect": "SlimDiT Inspect Checkpoint",
-    "SlimDiTSolAttnStats": "SlimDiT Attention Override Stats",
-    "SlimDiTSigmas": "SlimDiT Sigmas (3 / 4 / 6 steps)",
+    "SlimDiTLoader": "SlimDiT Loader (weights + LoRA + VAE + steps)",
 }
+
+#: Conversion/inspection helpers. Developer tools, so they stay out of the node library unless
+#: explicitly asked for: SLIMDIT_DEV_NODES=1.
+if os.environ.get("SLIMDIT_DEV_NODES", "0") not in ("", "0", "false", "False"):
+    NODE_CLASS_MAPPINGS.update(
+        {
+            "SlimDiTConvert": SlimDiTConvert,
+            "SlimDiTInspect": SlimDiTInspect,
+            "SlimDiTSolAttnStats": SlimDiTSolAttnStats,
+            "SlimDiTSigmas": SlimDiTSigmas,
+        }
+    )
+    NODE_DISPLAY_NAME_MAPPINGS.update(
+        {
+            "SlimDiTConvert": "SlimDiT Convert (INT8 + curves)",
+            "SlimDiTInspect": "SlimDiT Inspect Checkpoint",
+            "SlimDiTSolAttnStats": "SlimDiT Attention Override Stats",
+            "SlimDiTSigmas": "SlimDiT Sigmas (3 / 4 / 6 steps)",
+        }
+    )
+
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]

@@ -1,15 +1,15 @@
 {
  "id": "slimdit-int8",
  "revision": 0,
- "last_node_id": 52,
- "last_link_id": 18,
+ "last_node_id": 100,
+ "last_link_id": 16,
  "nodes": [
   {
    "id": 3,
    "type": "VHS_LoadVideo",
    "pos": [
     40,
-    200
+    0
    ],
    "size": [
     380,
@@ -45,19 +45,19 @@
     {
      "name": "frame_count",
      "type": "INT",
-     "links": null
+     "links": []
     },
     {
      "name": "audio",
      "type": "AUDIO",
      "links": [
-      18
+      16
      ]
     },
     {
      "name": "video_info",
      "type": "VHS_VIDEOINFO",
-     "links": null
+     "links": []
     }
    ],
    "properties": {
@@ -84,7 +84,7 @@
    "type": "LoadImage",
    "pos": [
     40,
-    310
+    150
    ],
    "size": [
     380,
@@ -107,7 +107,7 @@
     {
      "name": "MASK",
      "type": "MASK",
-     "links": null
+     "links": []
     }
    ],
    "properties": {
@@ -128,7 +128,7 @@
    "type": "ImageScaleToTotalPixels",
    "pos": [
     510,
-    420
+    300
    ],
    "size": [
     300,
@@ -137,7 +137,7 @@
    "flags": {
     "collapsed": true
    },
-   "order": 2,
+   "order": 5,
    "mode": 0,
    "inputs": [
     {
@@ -172,7 +172,7 @@
    "type": "ViggleAnimateConditioning",
    "pos": [
     510,
-    200
+    0
    ],
    "size": [
     320,
@@ -181,7 +181,7 @@
    "flags": {
     "collapsed": false
    },
-   "order": 3,
+   "order": 4,
    "mode": 0,
    "inputs": [
     {
@@ -210,14 +210,14 @@
      "name": "positive",
      "type": "CONDITIONING",
      "links": [
-      9
+      7
      ]
     },
     {
      "name": "latent",
      "type": "LATENT",
      "links": [
-      14
+      12
      ]
     }
    ],
@@ -241,7 +241,7 @@
    "type": "ViggleTextCondLoader",
    "pos": [
     40,
-    420
+    300
    ],
    "size": [
     310,
@@ -250,7 +250,7 @@
    "flags": {
     "collapsed": true
    },
-   "order": 4,
+   "order": 2,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -273,220 +273,14 @@
    ],
    "color": "#432",
    "bgcolor": "#653",
-   "title": "\u6587\u672c\u6761\u4ef6(\u9884\u8ba1\u7b97,\u4e00\u822c\u4e0d\u7528\u52a8)"
-  },
-  {
-   "id": 4,
-   "type": "VAELoader",
-   "pos": [
-    510,
-    530
-   ],
-   "size": [
-    310,
-    70
-   ],
-   "flags": {
-    "collapsed": true
-   },
-   "order": 5,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "VAE",
-     "type": "VAE",
-     "links": [
-      5,
-      16
-     ]
-    }
-   ],
-   "properties": {
-    "cnr_id": "comfy-core",
-    "ver": "0.34.0",
-    "Node name for S&R": "VAELoader"
-   },
-   "widgets_values": [
-    "minimax_h3_video_vae_fp16.safetensors"
-   ],
-   "color": "#322",
-   "bgcolor": "#533",
-   "title": "\u89c6\u9891 VAE"
-  },
-  {
-   "id": 13,
-   "type": "UNETLoader",
-   "pos": [
-    980,
-    200
-   ],
-   "size": [
-    470,
-    90
-   ],
-   "flags": {
-    "collapsed": true
-   },
-   "order": 6,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "MODEL",
-     "type": "MODEL",
-     "links": [
-      6
-     ]
-    }
-   ],
-   "properties": {
-    "cnr_id": "comfy-core",
-    "ver": "0.34.0",
-    "Node name for S&R": "UNETLoader"
-   },
-   "widgets_values": [
-    "minimax_h3_ref2va_slimdit_int8_convrot.safetensors",
-    "default"
-   ],
-   "color": "#432",
-   "bgcolor": "#653",
-   "title": "SlimDiT int8 \u6743\u91cd"
-  },
-  {
-   "id": 16,
-   "type": "LoraLoaderModelOnly",
-   "pos": [
-    980,
-    310
-   ],
-   "size": [
-    470,
-    90
-   ],
-   "flags": {
-    "collapsed": true
-   },
-   "order": 7,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "model",
-     "type": "MODEL",
-     "link": 6
-    }
-   ],
-   "outputs": [
-    {
-     "name": "MODEL",
-     "type": "MODEL",
-     "links": [
-      7
-     ]
-    }
-   ],
-   "properties": {
-    "cnr_id": "comfy-core",
-    "ver": "0.34.0",
-    "Node name for S&R": "LoraLoaderModelOnly"
-   },
-   "widgets_values": [
-    "viggle_animate_dmd_lora.safetensors",
-    1
-   ],
-   "color": "#432",
-   "bgcolor": "#653",
-   "title": "DMD LoRA"
-  },
-  {
-   "id": 14,
-   "type": "MiniMaxH3SigmaShift",
-   "pos": [
-    980,
-    420
-   ],
-   "size": [
-    300,
-    90
-   ],
-   "flags": {
-    "collapsed": true
-   },
-   "order": 8,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "model",
-     "type": "MODEL",
-     "link": 7
-    }
-   ],
-   "outputs": [
-    {
-     "name": "MODEL",
-     "type": "MODEL",
-     "links": [
-      8
-     ]
-    }
-   ],
-   "properties": {
-    "cnr_id": "comfy-core",
-    "ver": "0.34.0",
-    "Node name for S&R": "MiniMaxH3SigmaShift"
-   },
-   "widgets_values": [
-    3,
-    3
-   ],
-   "color": "#232",
-   "bgcolor": "#353",
-   "title": "\u65f6\u95f4\u6b65\u504f\u79fb(\u89c6\u9891/\u97f3\u9891\u5404 3)"
-  },
-  {
-   "id": 9,
-   "type": "KSamplerSelect",
-   "pos": [
-    980,
-    640
-   ],
-   "size": [
-    280,
-    70
-   ],
-   "flags": {
-    "collapsed": true
-   },
-   "order": 9,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "SAMPLER",
-     "type": "SAMPLER",
-     "links": [
-      12
-     ]
-    }
-   ],
-   "properties": {
-    "cnr_id": "comfy-core",
-    "ver": "0.34.0",
-    "Node name for S&R": "KSamplerSelect"
-   },
-   "widgets_values": [
-    "euler"
-   ],
-   "color": "#432",
-   "bgcolor": "#653",
-   "title": "\u91c7\u6837\u5668 euler(\u4e0d\u7528\u52a8)"
+   "title": "\u6587\u672c\u6761\u4ef6(\u9884\u52a0\u8f7d)"
   },
   {
    "id": 10,
    "type": "RandomNoise",
    "pos": [
     980,
-    530
+    150
    ],
    "size": [
     280,
@@ -495,7 +289,7 @@
    "flags": {
     "collapsed": false
    },
-   "order": 10,
+   "order": 7,
    "mode": 0,
    "inputs": [],
    "outputs": [
@@ -503,7 +297,7 @@
      "name": "NOISE",
      "type": "NOISE",
      "links": [
-      10
+      8
      ]
     }
    ],
@@ -516,55 +310,16 @@
     2347709,
     "fixed"
    ],
-   "color": "#432",
-   "bgcolor": "#653",
+   "color": "#233",
+   "bgcolor": "#355",
    "title": "\u2461 \u566a\u58f0\u79cd\u5b50(\u6539\u5b83=\u91cd\u65b0\u751f\u6210)"
-  },
-  {
-   "id": 50,
-   "type": "SlimDiTSigmas",
-   "pos": [
-    980,
-    750
-   ],
-   "size": [
-    330,
-    110
-   ],
-   "flags": {
-    "collapsed": false
-   },
-   "order": 11,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "SIGMAS",
-     "type": "SIGMAS",
-     "links": [
-      13
-     ]
-    }
-   ],
-   "properties": {
-    "cnr_id": "comfy-core",
-    "ver": "0.34.0",
-    "Node name for S&R": "ManualSigmas"
-   },
-   "widgets_values": [
-    "3",
-    3.0
-   ],
-   "title": "\u2461 \u6b65\u6570(3=\u4e0a\u6e38\u9ed8\u8ba4 / 6=\u66f4\u6162)",
-   "color": "#432",
-   "bgcolor": "#653"
   },
   {
    "id": 11,
    "type": "BasicGuider",
    "pos": [
-    1450,
-    200
+    980,
+    300
    ],
    "size": [
     250,
@@ -573,18 +328,18 @@
    "flags": {
     "collapsed": true
    },
-   "order": 12,
+   "order": 8,
    "mode": 0,
    "inputs": [
     {
      "name": "model",
      "type": "MODEL",
-     "link": 8
+     "link": 6
     },
     {
      "name": "conditioning",
      "type": "CONDITIONING",
-     "link": 9
+     "link": 7
     }
    ],
    "outputs": [
@@ -592,7 +347,7 @@
      "name": "GUIDER",
      "type": "GUIDER",
      "links": [
-      11
+      9
      ]
     }
    ],
@@ -603,14 +358,14 @@
    },
    "color": "#232",
    "bgcolor": "#353",
-   "title": "\u5f15\u5bfc:\u6bcf\u6b65\u8c03\u6a21\u578b(\u4e0d\u7528\u52a8)"
+   "title": "\u5f15\u5bfc(\u6bcf\u6b65\u8c03\u6a21\u578b)"
   },
   {
    "id": 12,
    "type": "SamplerCustomAdvanced",
    "pos": [
     1450,
-    310
+    0
    ],
    "size": [
     260,
@@ -619,33 +374,33 @@
    "flags": {
     "collapsed": false
    },
-   "order": 13,
+   "order": 9,
    "mode": 0,
    "inputs": [
     {
      "name": "noise",
      "type": "NOISE",
-     "link": 10
+     "link": 8
     },
     {
      "name": "guider",
      "type": "GUIDER",
-     "link": 11
+     "link": 9
     },
     {
      "name": "sampler",
      "type": "SAMPLER",
-     "link": 12
+     "link": 10
     },
     {
      "name": "sigmas",
      "type": "SIGMAS",
-     "link": 13
+     "link": 11
     },
     {
      "name": "latent_image",
      "type": "LATENT",
-     "link": 14
+     "link": 12
     }
    ],
    "outputs": [
@@ -653,13 +408,13 @@
      "name": "output",
      "type": "LATENT",
      "links": [
-      15
+      13
      ]
     },
     {
      "name": "denoised_output",
      "type": "LATENT",
-     "links": null
+     "links": []
     }
    ],
    "properties": {
@@ -669,14 +424,14 @@
    },
    "color": "#233",
    "bgcolor": "#355",
-   "title": "\u2461 \u91c7\u6837(4 \u6b65)"
+   "title": "\u2461 \u91c7\u6837(\u6b65\u6570\u7531\u52a0\u8f7d\u5668\u51b3\u5b9a)"
   },
   {
    "id": 17,
    "type": "VAEDecode",
    "pos": [
-    1920,
-    200
+    1450,
+    300
    ],
    "size": [
     240,
@@ -685,18 +440,18 @@
    "flags": {
     "collapsed": true
    },
-   "order": 14,
+   "order": 10,
    "mode": 0,
    "inputs": [
     {
      "name": "samples",
      "type": "LATENT",
-     "link": 15
+     "link": 13
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 16
+     "link": 14
     }
    ],
    "outputs": [
@@ -704,7 +459,7 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      17
+      15
      ]
     }
    ],
@@ -722,7 +477,7 @@
    "type": "VHS_VideoCombine",
    "pos": [
     1920,
-    310
+    0
    ],
    "size": [
     430,
@@ -731,19 +486,19 @@
    "flags": {
     "collapsed": false
    },
-   "order": 15,
+   "order": 11,
    "mode": 0,
    "inputs": [
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 17
+     "link": 15
     },
     {
      "name": "audio",
      "shape": 7,
      "type": "AUDIO",
-     "link": 18
+     "link": 16
     },
     {
      "name": "meta_batch",
@@ -762,7 +517,7 @@
     {
      "name": "Filenames",
      "type": "VHS_FILENAMES",
-     "links": null
+     "links": []
     }
    ],
    "properties": {
@@ -791,16 +546,16 @@
    "type": "Note",
    "pos": [
     40,
-    640
+    450
    ],
    "size": [
     380,
-    260
+    300
    ],
    "flags": {
     "collapsed": false
    },
-   "order": 0,
+   "order": 3,
    "mode": 0,
    "inputs": [],
    "outputs": [],
@@ -810,11 +565,78 @@
     "Node name for S&R": "Note"
    },
    "widgets_values": [
-    "\u7528\u6cd5(\u4e09\u6b65):\n\u2460 \u5de6\u8fb9\u653e:\u9a71\u52a8\u89c6\u9891 + \u89d2\u8272\u53c2\u8003\u56fe(\u53c2\u8003\u56fe\u6700\u597d\u662f\u540c\u4e00\u955c\u5934\u7684\u6539\u7ed8\u5e27)\n\u2461 \u4e2d\u95f4\u53ea\u6709\u4e24\u4e2a\u53ef\u52a8:length = \u5e27\u6570(\u8ddf\u9a71\u52a8\u89c6\u9891\u4e00\u81f4),RandomNoise \u7684 seed(\u6539\u5b83\u5c31\u91cd\u65b0\u751f\u6210)\n\u2462 \u53f3\u8fb9\u51fa mp4(\u5e26\u9a71\u52a8\u89c6\u9891\u7684\u539f\u58f0)\n\n\u7070\u6389\u7684\u65b9\u6846\u662f\u52a0\u8f7d\u6a21\u578b/VAE/\u91c7\u6837\u53c2\u6570,\u6298\u53e0\u8d77\u6765\u4e86,\u4e00\u822c\u4e0d\u7528\u78b0\u3002\n\u6ce8\u610f\u529b\u8def\u7531/\u52a0\u901f\u7531 SlimDiT \u8282\u70b9\u5305\u5728\u540e\u53f0\u751f\u6548(\u542f\u52a8\u65f6 SLIMDIT_ATTN=auto)\u3002"
+    "\u7528\u6cd5(\u4e09\u6b65):\n\u2460 \u5de6\u8fb9\u653e:\u9a71\u52a8\u89c6\u9891 + \u89d2\u8272\u53c2\u8003\u56fe(\u53c2\u8003\u56fe\u6700\u597d\u662f\u540c\u4e00\u955c\u5934\u7684\u6539\u7ed8\u5e27)\n\u2461 \u4e2d\u95f4\u53ea\u6709\u4e09\u5904\u53ef\u52a8:\u6b65\u6570(3/4/6)\u3001length=\u5e27\u6570(\u8ddf\u9a71\u52a8\u89c6\u9891\u4e00\u81f4)\u3001seed(\u6539\u5b83=\u91cd\u65b0\u751f\u6210)\n\u2462 \u53f3\u8fb9\u51fa mp4(\u5e26\u9a71\u52a8\u89c6\u9891\u7684\u539f\u58f0)\n\n\u52a0\u8f7d\u5668\u4e00\u4e2a\u8282\u70b9\u5c31\u5e26\u6a21\u578b/LoRA/VAE/\u6b65\u6570;\u7070\u8272\u6761\u662f\u6298\u53e0\u7684\u8f85\u52a9\u8282\u70b9,\u4e0d\u7528\u78b0\u3002\n\u6ce8\u610f\u529b\u8def\u7531\u7531 SlimDiT \u8282\u70b9\u5305\u5728\u540e\u53f0\u751f\u6548(\u542f\u52a8\u65f6 SLIMDIT_ATTN=auto)\u3002"
    ],
-   "title": "Note",
+   "title": "\u8bf4\u660e",
    "color": "#233",
    "bgcolor": "#355"
+  },
+  {
+   "id": 100,
+   "type": "SlimDiTLoader",
+   "pos": [
+    980,
+    0
+   ],
+   "size": [
+    420,
+    260
+   ],
+   "flags": {
+    "collapsed": false
+   },
+   "order": 6,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "links": [
+      6
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "links": [
+      5,
+      14
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "sigmas",
+     "type": "SIGMAS",
+     "links": [
+      11
+     ],
+     "slot_index": 2
+    },
+    {
+     "name": "sampler",
+     "type": "SAMPLER",
+     "links": [
+      10
+     ],
+     "slot_index": 3
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SlimDiTLoader"
+   },
+   "widgets_values": [
+    "minimax_h3_ref2va_slimdit_int8_convrot.safetensors",
+    "viggle_animate_dmd_lora.safetensors",
+    "minimax_h3_video_vae_fp16.safetensors",
+    "3",
+    3.0,
+    3.0
+   ],
+   "title": "\u52a0\u8f7d\u5668:\u6743\u91cd + LoRA + VAE + \u6b65\u6570",
+   "color": "#432",
+   "bgcolor": "#653"
   }
  ],
  "links": [
@@ -852,38 +674,22 @@
   ],
   [
    5,
-   4,
-   0,
+   100,
+   1,
    1,
    3,
    "VAE"
   ],
   [
    6,
-   13,
-   0,
-   16,
-   0,
-   "MODEL"
-  ],
-  [
-   7,
-   16,
-   0,
-   14,
-   0,
-   "MODEL"
-  ],
-  [
-   8,
-   14,
+   100,
    0,
    11,
    0,
    "MODEL"
   ],
   [
-   9,
+   7,
    1,
    0,
    11,
@@ -891,7 +697,7 @@
    "CONDITIONING"
   ],
   [
-   10,
+   8,
    10,
    0,
    12,
@@ -899,7 +705,7 @@
    "NOISE"
   ],
   [
-   11,
+   9,
    11,
    0,
    12,
@@ -907,23 +713,23 @@
    "GUIDER"
   ],
   [
-   12,
-   9,
-   0,
+   10,
+   100,
+   3,
    12,
    2,
    "SAMPLER"
   ],
   [
-   13,
-   50,
-   0,
+   11,
+   100,
+   2,
    12,
    3,
    "SIGMAS"
   ],
   [
-   14,
+   12,
    1,
    1,
    12,
@@ -931,7 +737,7 @@
    "LATENT"
   ],
   [
-   15,
+   13,
    12,
    0,
    17,
@@ -939,15 +745,15 @@
    "LATENT"
   ],
   [
-   16,
-   4,
-   0,
+   14,
+   100,
+   1,
    17,
    1,
    "VAE"
   ],
   [
-   17,
+   15,
    17,
    0,
    21,
@@ -955,7 +761,7 @@
    "IMAGE"
   ],
   [
-   18,
+   16,
    3,
    2,
    21,
@@ -968,9 +774,9 @@
    "title": "\u2460 \u51c6\u5907 \u00b7 \u8f93\u5165\u7d20\u6750",
    "bounding": [
     -20,
-    160,
-    430,
-    930
+    -40,
+    440,
+    960
    ],
    "color": "#335",
    "font_size": 24
@@ -979,31 +785,31 @@
    "title": "\u2461 \u51c6\u5907 \u00b7 \u6761\u4ef6(Viggle)",
    "bounding": [
     450,
-    160,
-    430,
+    -40,
+    440,
     760
    ],
    "color": "#353",
    "font_size": 24
   },
   {
-   "title": "\u2461 \u6e32\u67d3 \u00b7 \u91c7\u6837 4 \u6b65",
+   "title": "\u2461 \u6a21\u578b / \u91c7\u6837\u8bbe\u7f6e",
    "bounding": [
     920,
-    160,
-    430,
-    870
+    -40,
+    440,
+    760
    ],
    "color": "#533",
    "font_size": 24
   },
   {
-   "title": "\u2461 \u6e32\u67d3 \u00b7 \u91c7\u6837\u5faa\u73af",
+   "title": "\u2461 \u91c7\u6837",
    "bounding": [
     1390,
-    160,
-    430,
-    440
+    -40,
+    440,
+    760
    ],
    "color": "#533",
    "font_size": 24
@@ -1012,9 +818,9 @@
    "title": "\u2462 \u5408\u6210 \u00b7 \u51fa\u7247",
    "bounding": [
     1860,
-    160,
-    430,
-    1250
+    -40,
+    440,
+    1130
    ],
    "color": "#235",
    "font_size": 24
