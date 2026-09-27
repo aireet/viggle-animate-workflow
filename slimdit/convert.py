@@ -78,6 +78,16 @@ def output_manifest(
     return manifest
 
 
+def _prepare(tensor: torch.Tensor, op: mapping.Op) -> torch.Tensor:
+    """Apply the op's layout fixups to a source tensor before it is stored."""
+    if op.swap_halves:
+        half = tensor.shape[0] // 2
+        if half * 2 != tensor.shape[0]:
+            raise ValueError(f"{op.out[0]}: cannot swap halves of {tuple(tensor.shape)}")
+        tensor = torch.cat([tensor[half:], tensor[:half]], dim=0)
+    return tensor
+
+
 def convert(
     src_dir: str | Path,
     out_path: str | Path,
@@ -121,6 +131,7 @@ def convert(
             if op.kind == "quant":
                 parts = [src.get(s).float() for s in op.src]
                 weight = parts[0] if len(parts) == 1 else torch.cat(parts, dim=0)
+                weight = _prepare(weight, op)
                 weight_np = weight.numpy()
                 q, scale = quantize_convrot_weight(weight_np)
                 base = name[: -len(".weight")]
@@ -131,11 +142,11 @@ def convert(
                 report.quant_errors.append(float(np.linalg.norm(deq - weight_np) / np.linalg.norm(weight_np)))
                 del parts, weight, weight_np, q, scale, deq
             elif op.kind == "copy":
-                writer.append(name, to_bytes(src.get(op.src[0]), op.dtype.upper()))
+                writer.append(name, to_bytes(_prepare(src.get(op.src[0]), op), op.dtype.upper()))
             elif op.kind == "concat":
                 parts = [src.get(s) for s in op.src]
                 merged = parts[0] if len(parts) == 1 else torch.cat(parts, dim=0)
-                writer.append(name, to_bytes(merged, op.dtype.upper()))
+                writer.append(name, to_bytes(_prepare(merged, op), op.dtype.upper()))
                 del parts, merged
             elif op.kind == "curve":
                 weight = src.get(op.src[0]).float().numpy()

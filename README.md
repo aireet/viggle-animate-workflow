@@ -60,6 +60,27 @@ Curve checkpoints carry two extra flavours of tensor: a shared `adaln_t_table` `
 (one row per `t = i / (grid - 1)`, interpolated at runtime) and, per block,
 `adaln_proj.linear.weight` of shape `[96768, rank]`.
 
+### Layout gotchas
+
+Two reorderings are mandatory and are *not* visible in tensor shapes — a wrong one turns renders
+into noise while every header check still passes:
+
+* `attn.qkv_proj.weight` = `concat([to_q, to_k, to_v])` (the runtime does
+  `split(heads * head_dim, dim=-1)`).
+* `mlp.fc1.weight` = the official `ff.net.0.proj.weight` **with its two halves swapped**, because
+  the runtime evaluates it as `linear_input_act(fc2, fc1(x), "swiglu")` and that activation's half
+  order is the opposite of how the released checkpoint stores the gated projection. This applies
+  to the token refiner too.
+
+Always finish a conversion with a content comparison against a known-good checkpoint:
+
+```bash
+python tools/verify_checkpoint.py --checkpoint ours.safetensors --reference reference.safetensors
+```
+
+It dequantizes INT8 tensors on both sides and reports the worst per-tensor deviations, which is
+how the fc1 swap above was found.
+
 ## Status
 
 - [x] INT8 ConvRot conversion of MiniMax-H3 with analytic adaln curves

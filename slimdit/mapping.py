@@ -24,12 +24,12 @@ from typing import Literal
 
 Kind = Literal["quant", "copy", "concat", "curve", "curve_table", "derived"]
 
-QUANT_BLOCK_LAYERS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    # output suffix -> official suffixes (concatenated along dim 0 in this order)
-    ("attn.qkv_proj.weight", ("attn.to_q.weight", "attn.to_k.weight", "attn.to_v.weight")),
-    ("attn.out_proj.weight", ("attn.to_out.0.weight",)),
-    ("mlp.fc1.weight", ("ff.net.0.proj.weight",)),
-    ("mlp.fc2.weight", ("ff.net.2.weight",)),
+QUANT_BLOCK_LAYERS: tuple[tuple[str, tuple[str, ...], bool], ...] = (
+    # output suffix -> official suffixes (concatenated along dim 0 in this order), swap halves
+    ("attn.qkv_proj.weight", ("attn.to_q.weight", "attn.to_k.weight", "attn.to_v.weight"), False),
+    ("attn.out_proj.weight", ("attn.to_out.0.weight",), False),
+    ("mlp.fc1.weight", ("ff.net.0.proj.weight",), True),
+    ("mlp.fc2.weight", ("ff.net.2.weight",), False),
 )
 
 COPY_BLOCK_LAYERS: tuple[tuple[str, str], ...] = (
@@ -39,14 +39,14 @@ COPY_BLOCK_LAYERS: tuple[tuple[str, str], ...] = (
     ("attn.k_norm.weight", "attn.norm_k.weight"),
 )
 
-REFINER_COPY_LAYERS: tuple[tuple[str, str], ...] = (
-    ("norm1.weight", "norm1.weight"),
-    ("norm2.weight", "norm2.weight"),
-    ("attn.q_norm.weight", "attn.norm_q.weight"),
-    ("attn.k_norm.weight", "attn.norm_k.weight"),
-    ("attn.out_proj.weight", "attn.to_out.0.weight"),
-    ("mlp.fc1.weight", "ff.net.0.proj.weight"),
-    ("mlp.fc2.weight", "ff.net.2.weight"),
+REFINER_COPY_LAYERS: tuple[tuple[str, str, bool], ...] = (
+    ("norm1.weight", "norm1.weight", False),
+    ("norm2.weight", "norm2.weight", False),
+    ("attn.q_norm.weight", "attn.norm_q.weight", False),
+    ("attn.k_norm.weight", "attn.norm_k.weight", False),
+    ("attn.out_proj.weight", "attn.to_out.0.weight", False),
+    ("mlp.fc1.weight", "ff.net.0.proj.weight", True),
+    ("mlp.fc2.weight", "ff.net.2.weight", False),
 )
 
 #: The reference checkpoint keeps the refiner in BF16, but the official weights ship q/k/v
@@ -96,6 +96,9 @@ class Op:
     src: tuple[str, ...] = ()
     dtype: str = "bf16"
     note: str = ""
+    #: Swap the two halves of the row dimension. ComfyUI's ``swiglu`` expects ``[up; gate]``
+    #: while the official checkpoints store ``ff.net.0.proj`` as ``[gate; up]``.
+    swap_halves: bool = False
     extra: dict = field(default_factory=dict)
 
 
@@ -115,12 +118,13 @@ def build_plan(keys) -> list[Op]:
     for i in range(n_blocks):
         src = f"transformer_blocks.{i}"
         dst = f"blocks.{i}"
-        for out_suffix, src_suffixes in QUANT_BLOCK_LAYERS:
+        for out_suffix, src_suffixes, swap in QUANT_BLOCK_LAYERS:
             ops.append(
                 Op(
                     out=(f"{dst}.{out_suffix}",),
                     kind="quant",
                     src=tuple(f"{src}.{s}" for s in src_suffixes),
+                    swap_halves=swap,
                 )
             )
         for out_suffix, src_suffix in COPY_BLOCK_LAYERS:
@@ -152,12 +156,13 @@ def build_plan(keys) -> list[Op]:
                     src=tuple(f"token_refiner.refiner_blocks.{i}.{s}" for s in src_suffixes),
                 )
             )
-        for out_suffix, src_suffix in REFINER_COPY_LAYERS:
+        for out_suffix, src_suffix, swap in REFINER_COPY_LAYERS:
             ops.append(
                 Op(
                     out=(f"token_refiner.blocks.{i}.{out_suffix}",),
                     kind="copy",
                     src=(f"token_refiner.refiner_blocks.{i}.{src_suffix}",),
+                    swap_halves=swap,
                 )
             )
     ops.append(

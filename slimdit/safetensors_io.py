@@ -100,11 +100,13 @@ class ShardSet:
     """The official shards, memory-mapped, keyed by tensor name."""
 
     def __init__(self, directory: str | Path):
-        self.directory = Path(directory)
+        source = Path(directory)
+        self.directory = source if source.is_dir() else source.parent
         self._readers: dict[str, object] = {}
         self.manifest: dict[str, tuple[str, tuple[int, ...]]] = {}
         self.index: dict[str, str] = {}
-        for shard in sorted(self.directory.glob("*.safetensors")):
+        shards = [source] if source.is_file() else sorted(source.glob("*.safetensors"))
+        for shard in shards:
             reader = safe_open(str(shard), framework="pt", device="cpu")
             self._readers[shard.name] = reader
             for key in reader.keys():
