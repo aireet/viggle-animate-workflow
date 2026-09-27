@@ -47,8 +47,10 @@ def test_h3_node_takes_three_inputs_and_outputs_the_latent(monkeypatch):
     """The graph depends on this shape: video + still (+ audio) in, latent + vae + audio out."""
     node = load_nodes(monkeypatch, dev=False).ViggleAnimateH3
     required = node.INPUT_TYPES()["required"]
-    assert list(required)[:5] == ["video", "reference_image", "steps", "length", "seed"]
+    assert list(required)[:5] == ["model", "vae", "video", "reference_image", "audio"]
+    assert required["model"][0] == "MODEL"
+    assert required["vae"][0] == "VAE"
+    assert required["audio"][0] == "AUDIO"
     assert required["steps"][0] == ["3", "4", "6"]
     assert required["length"][1]["default"] == 124
-    assert required["audio"][0] == "AUDIO"
-    assert node.RETURN_NAMES == ("latent", "vae", "audio")
+    assert node.RETURN_NAMES == ("latent", "audio")

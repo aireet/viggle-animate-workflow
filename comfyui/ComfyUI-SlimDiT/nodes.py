@@ -323,8 +323,8 @@ class ViggleAnimateH3:
 
     CATEGORY = "slimdit"
     FUNCTION = "run"
-    RETURN_TYPES = ("LATENT", "VAE", "AUDIO")
-    RETURN_NAMES = ("latent", "vae", "audio")
+    RETURN_TYPES = ("LATENT", "AUDIO")
+    RETURN_NAMES = ("latent", "audio")
     DESCRIPTION = (
         "Viggle-Animate conditioning + sampling: driving video + reference still (+ its audio) -> "
         "video latent. Wire latent into a VAE Decode with the vae output, then save the frames. "
@@ -336,35 +336,31 @@ class ViggleAnimateH3:
         try:
             import folder_paths
 
-            checkpoints = folder_paths.get_filename_list("diffusion_models")
-            loras = folder_paths.get_filename_list("loras")
-            vaes = folder_paths.get_filename_list("vae")
             text_conds = folder_paths.get_filename_list("text_cond")
         except Exception:  # noqa: BLE001 - outside ComfyUI
-            checkpoints, loras, vaes, text_conds = [], [], [], []
+            text_conds = []
 
         def first(items, needle):
             return next((i for i in items if needle in i.lower()), None)
 
         return {
             "required": {
+                "model": ("MODEL", {"tooltip": "From Load Diffusion Model, optionally through Load LoRA -- patched with the sigma shift inside this node."}),
+                "vae": ("VAE", {"tooltip": "MiniMax-H3 video VAE (Load VAE); used to encode the driving clip and the still."}),
                 "video": ("IMAGE", {"tooltip": "Driving video frames at 24 fps (Load Video). Supplies motion, camera, background."}),
                 "reference_image": ("IMAGE", {"tooltip": "Single still of the person to place in the video. A repainted frame of the same shot works best."}),
+                "audio": ("AUDIO", {"tooltip": "The driving clip's audio (Load Video's audio output); carried through to the save node."}),
                 "steps": (["3", "4", "6"], {"default": "3", "tooltip": "3 is what the finetune and the DMD LoRA were distilled for."}),
                 "length": ("INT", {"default": 124, "min": 5, "max": 3600, "step": 17,
                                    "tooltip": "Frames at 24 fps, snapped to the 17k+5 grid (124 = ~5.2 s). Clamped to the driving clip's own length."}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF, "control_after_generate": True}),
-                "checkpoint": (checkpoints, {"default": first(checkpoints, "slimdit") or (checkpoints[0] if checkpoints else "")}),
-                "lora": (["(none)"] + loras, {"default": first(loras, "viggle") or "(none)"}),
-                "vae": (vaes, {"default": first(vaes, "video_vae") or first(vaes, "minimax") or (vaes[0] if vaes else "")}),
                 "text_cond": (text_conds, {"default": first(text_conds, "fixed_embed") or (text_conds[0] if text_conds else "")}),
                 "shift_video": ("FLOAT", {"default": 3.0, "min": 0.01, "max": 100.0, "step": 0.01}),
                 "shift_audio": ("FLOAT", {"default": 3.0, "min": 0.01, "max": 100.0, "step": 0.01}),
-                "audio": ("AUDIO", {"tooltip": "The driving clip's audio (Load Video's audio output); it is carried through to the save node."}),
             },
         }
 
-    def run(self, video, reference_image, steps, length, seed, checkpoint, lora, vae, text_cond, shift_video, shift_audio, audio=None):
+    def run(self, model, vae, video, reference_image, audio, steps, length, seed, text_cond, shift_video, shift_audio):
         import torch
 
         import comfy.samplers
@@ -380,10 +376,7 @@ class ViggleAnimateH3:
         if frames != int(length):
             print(f"[slimdit/viggle] length {int(length)} clamped to the clip's {frames} frames", flush=True)
 
-        model, = comfy_nodes.UNETLoader().load_unet(checkpoint, "default")
-        if lora and lora != "(none)":
-            model, = comfy_nodes.LoraLoaderModelOnly().load_lora_model_only(model, lora, 1.0)
-        vae_model, = comfy_nodes.VAELoader().load_vae(vae)
+        vae_model = vae
         model = _apply_sigma_shift(model, float(shift_video), float(shift_audio))
 
         cond_video, = _node_call(registry["ImageScaleToTotalPixels"], image=video, upscale_method="area", megapixels=0.4, resolution_steps=32)
@@ -414,12 +407,9 @@ class ViggleAnimateH3:
             sigmas=sigmas,
             latent_image=latent,
         )
-        text_out = (
-            f"{checkpoint} · lora={lora} · {int(steps)} steps {format_sigmas(values).strip()} · "
-            f"{frames} frames · seed {int(seed)}"
-        )
+        text_out = f"{int(steps)} steps {format_sigmas(values).strip()} · {frames} frames · seed {int(seed)}"
         print(f"[slimdit/viggle] {text_out}", flush=True)
-        return {"ui": {"text": [text_out]}, "result": (sampled[0], vae_model, audio)}
+        return {"ui": {"text": [text_out]}, "result": (sampled[0], audio)}
 
 
 NODE_CLASS_MAPPINGS = {

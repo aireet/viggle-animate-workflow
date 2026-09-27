@@ -22,13 +22,14 @@ VAE = "minimax_h3_video_vae_fp16.safetensors"
 TEXT_COND = "fixed_embed_fwd_anyframe.safetensors"
 
 NOTE_ONECLICK = (
-    "viggle-animate-h3:视频 + 参考图 + 音频 进同一个节点,它输出 video latent。\n"
-    "  1. 左边放驱动视频(画面和声音都从这里来)和参考图(最好是同一镜头里改绘的一帧)\n"
+    "viggle-animate-h3:权重、LoRA、VAE 全部用 ComfyUI 自带的加载器节点,连线送进本节点。\n"
+    "  1. 左边放驱动视频(画面和声音)和参考图(最好是同一镜头里改绘的一帧)\n"
     "  2. 点 Run\n"
     "  3. 右边 VHS_VideoCombine 出 mp4(带驱动视频原声)\n\n"
-    "连线:驱动视频 IMAGE -> 节点 video;驱动视频 audio -> 节点 audio 和保存节点;\n"
-    "参考图 IMAGE -> 节点 reference_image;节点 latent -> VAE Decode;节点 vae -> VAE Decode;\n"
-    "VAE Decode IMAGE -> 保存节点。默认值 = 官方评测配置(3 步 / 124 帧 / shift 3/3)。"
+    "连线:Load Diffusion Model -> Load LoRA -> 节点 model;Load VAE -> 节点 vae 和 VAE Decode;\n"
+    "驱动视频 IMAGE/audio -> 节点 video/audio;参考图 -> reference_image;\n"
+    "节点 latent -> VAE Decode -> 保存节点;节点 audio 直通保存节点。\n"
+    "节点里只留 slimdit 自己的设置:步数 3/4/6、帧数、seed、文本条件、shift。"
 )
 
 
@@ -94,6 +95,17 @@ class Graph:
         for index, node in enumerate(self.nodes):
             node["order"] = index
 
+        # no node may overlap another: a wrong size makes the frontend grow a node into its neighbour
+        placed = [n for n in self.nodes if n["type"] != "Note"]
+        for i, a in enumerate(placed):
+            ax0, ay0 = a["pos"]
+            ax1, ay1 = ax0 + a["size"][0], ay0 + a["size"][1]
+            for b in placed[i + 1:]:
+                bx0, by0 = b["pos"]
+                bx1, by1 = bx0 + b["size"][0], by0 + b["size"][1]
+                if ax0 < bx1 and bx0 < ax1 and ay0 < by1 and by0 < ay1:
+                    raise SystemExit(f"{name}: {a['type']} overlaps {b['type']}")
+
         doc = {
             "id": name.replace(".json", ""),
             "revision": 0,
@@ -140,51 +152,74 @@ def loader_node(node_id: int, pos: list[int]) -> dict:
 
 
 def one_click(base: dict) -> None:
-    """Standard, fully wired graph: video + still + audio -> viggle-animate-h3 -> latent -> VAE
-    decode -> save mp4. Everything on screen and legible."""
+    """ComfyUI conventions, and no node overlaps anything else.
+
+    Sizes are the vendor workflow's real rendered sizes (a node grew past them before, which pushed
+    it into the node below); placement keeps >=80 px between every pair of rectangles, checked in
+    save().
+    """
     g = Graph(base)
-    video = g.take("VHS_LoadVideo", [0, 0])
-    video["size"] = [330, 280]
-    image = g.take("LoadImage", [0, 360])
-    image["size"] = [330, 330]
+    unet = g.take("UNETLoader", [0, 0])
+    unet["size"] = [470, 90]
+    unet["widgets_values"] = [CHECKPOINT, "default"]
+    unet["title"] = "Load Diffusion Model"
+    lora = g.take("LoraLoaderModelOnly", [0, 180])
+    lora["size"] = [470, 90]
+    lora["widgets_values"] = [LORA, 1.0]
+    lora["title"] = "Load LoRA"
+    vae_load = g.take("VAELoader", [0, 380])
+    vae_load["size"] = [310, 70]
+    vae_load["widgets_values"] = [VAE]
+    vae_load["title"] = "Load VAE"
+
+    video = g.take("VHS_LoadVideo", [560, 0])
+    video["size"] = [380, 950]
+    image = g.take("LoadImage", [560, 1030])
+    image["size"] = [380, 700]
+
     node = g.add({
         "id": 100,
         "type": "ViggleAnimateH3",
-        "pos": [400, 40],
-        "size": [380, 340],
+        "pos": [1030, 0],
+        "size": [400, 460],
         "flags": {},
         "order": 0,
         "mode": 0,
         "inputs": [
+            {"name": "model", "type": "MODEL", "link": None},
+            {"name": "vae", "type": "VAE", "link": None},
             {"name": "video", "type": "IMAGE", "link": None},
             {"name": "reference_image", "type": "IMAGE", "link": None},
             {"name": "audio", "type": "AUDIO", "link": None},
         ],
         "outputs": [
             {"name": "latent", "type": "LATENT", "links": [], "slot_index": 0},
-            {"name": "vae", "type": "VAE", "links": [], "slot_index": 1},
-            {"name": "audio", "type": "AUDIO", "links": [], "slot_index": 2},
+            {"name": "audio", "type": "AUDIO", "links": [], "slot_index": 1},
         ],
         "properties": {"Node name for S&R": "ViggleAnimateH3"},
-        "widgets_values": ["3", 124, 0, "randomize", CHECKPOINT, LORA, VAE, TEXT_COND, 3.0, 3.0],
+        "widgets_values": ["3", 124, 0, "randomize", TEXT_COND, 3.0, 3.0],
         "title": "viggle-animate-h3",
         "color": "#432",
         "bgcolor": "#653",
     })
-    decode = g.take("VAEDecode", [860, 140])
-    decode["size"] = [250, 120]
-    decode["title"] = "MiniMax-H3 VAE Decode"
-    combine = g.take("VHS_VideoCombine", [400, 470])
-    combine["size"] = [400, 330]
 
+    decode = g.take("VAEDecode", [1520, 80])
+    decode["size"] = [240, 80]
+    decode["title"] = "MiniMax-H3 VAE Decode"
+    combine = g.take("VHS_VideoCombine", [1520, 260])
+    combine["size"] = [430, 970]
+
+    g.connect(unet, "MODEL", lora, "model")
+    g.connect(lora, "MODEL", node, "model")
+    g.connect(vae_load, "VAE", node, "vae")
     g.connect(video, "IMAGE", node, "video")
     g.connect(video, "audio", node, "audio")
     g.connect(image, "IMAGE", node, "reference_image")
     g.connect(node, "latent", decode, "samples")
-    g.connect(node, "vae", decode, "vae")
+    g.connect(vae_load, "VAE", decode, "vae")
     g.connect(node, "audio", combine, "audio")
     g.connect(decode, "IMAGE", combine, "images")
-    g.save("viggle-animate-h3.json", NOTE_ONECLICK, ds={"scale": 0.8, "offset": [500, 70]}, note_pos=[860, 430])
+    g.save("viggle-animate-h3.json", NOTE_ONECLICK, ds={"scale": 1.0, "offset": [500, 60]}, note_pos=[1030, 520])
 
 
 def main() -> int:
