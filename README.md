@@ -132,9 +132,23 @@ Measured on the released weights:
 
 - [x] INT8 ConvRot conversion of MiniMax-H3 with analytic adaln curves
 - [x] NVFP4 variant (`--quant nvfp4`, 11.7 GiB instead of 19.6 GiB, softer renders)
-- [ ] Mixed INT8/NVFP4: keep sensitive blocks in INT8, NVFP4 for the rest
-- [ ] sm89 / sm120 kernel pack (Triton INT8 + curve ops) with arch-aware routing
 - [x] ComfyUI node: convert + inspect checkpoints from inside the graph
+- [ ] Mixed INT8/NVFP4: keep sensitive blocks in INT8, NVFP4 for the rest
+- [ ] End-to-end render profile; attention is the remaining big term (the INT8 GEMMs are done)
+
+## Notes on kernels
+
+`tools/bench_int8.py` measures comfy-kitchen's INT8 ConvRot linear on the shapes this project
+emits. Measured (M = tokens per forward, i.e. the whole sequence at once):
+
+| device | M=1 | M=512 | M=2048 |
+|---|---|---|---|
+| RTX 5090 (sm_120) | 0.058-0.104 ms, 616-1690 GiB/s | 420-506 TFLOP/s | 520-583 TFLOP/s |
+| RTX 4090 (sm_89) | 0.079-0.174 ms, 455-911 GiB/s | 356-477 TFLOP/s | 412-498 TFLOP/s |
+
+Both architectures run at ~75 % of their INT8 peak and at memory-bandwidth limit for a single
+token, so a custom INT8 GEMM kernel would not buy anything. The remaining headroom in this
+pipeline is attention and the surrounding elementwise work, not the quantized linears.
 
 ## Notes
 

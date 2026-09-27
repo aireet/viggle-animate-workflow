@@ -44,13 +44,23 @@ def backend_report() -> str:
     return "\n".join(lines)
 
 
+def quantize_weight(weight, convrot_groupsize: int = 256):
+    """INT8 ConvRot quantization through the layout class, i.e. the path ComfyUI uses."""
+    from comfy_kitchen.tensor import TensorWiseINT8Layout
+
+    qdata, params = TensorWiseINT8Layout.quantize(
+        weight, per_channel=True, convrot=True, convrot_groupsize=convrot_groupsize
+    )
+    return qdata, params.scale
+
+
 def bench_one(m: int, n: int, k: int, iters: int, warmup: int, convrot_groupsize: int = 256) -> dict:
     import comfy_kitchen as ck
 
     device = torch.device("cuda", torch.cuda.current_device())
     x = torch.randn(m, k, device=device, dtype=torch.bfloat16) * 0.5
     weight = torch.randn(n, k, device=device, dtype=torch.bfloat16) * 0.02
-    qweight, wscales = ck.quantize_int8_convrot_weight(weight, convrot_groupsize)
+    qweight, wscales = quantize_weight(weight, convrot_groupsize)
 
     def call():
         return ck.int8_linear(
