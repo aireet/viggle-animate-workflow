@@ -1,0 +1,14 @@
+[project]
+name = "comfyui-slimdit"
+version = "0.1.0"
+description = "Convert diffusion checkpoints into INT8 ConvRot / NVFP4 with analytic low-rank adaln curves, from inside ComfyUI"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "torch>=2.1", "safetensors>=0.4", "tqdm>=4.60", "huggingface_hub>=0.23"]
+
+[project.urls]
+Repository = "https://huggingface.co/WarpEngine-github/slimdit"
+
+[tool.comfy]
+PublisherId = "slimdit"
+DisplayName = "SlimDiT"
+Icon = ""
