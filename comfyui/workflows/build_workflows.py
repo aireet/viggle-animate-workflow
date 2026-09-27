@@ -214,6 +214,7 @@ def one_click(base: dict) -> None:
     g.connect(vae_load, "VAE", node, "vae")
     g.connect(video, "IMAGE", node, "video")
     g.connect(video, "audio", node, "audio")
+
     g.connect(image, "IMAGE", node, "reference_image")
     g.connect(node, "latent", decode, "samples")
     g.connect(vae_load, "VAE", decode, "vae")
