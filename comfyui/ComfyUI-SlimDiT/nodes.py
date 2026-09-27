@@ -310,23 +310,24 @@ def _node_call(cls, **inputs):
     return out.result if hasattr(out, "result") else out
 
 
-class ViggleAnimateSlimDiT:
-    """The whole Viggle-Animate render behind three inputs and a Run.
+class ViggleAnimateH3:
+    """Viggle-Animate conditioning + sampling, as one node: driving video, reference still and the
+    clip's audio in, **video latent** out.
 
-    Driving video, reference still and the driving clip's audio all go *into* this node; it runs the
-    vendor chain (clip scaled to 0.4 MP, frozen text conditioning, vendor conditioning build, SlimDiT
-    weights + shift, euler sampler on the 3/4/6-step schedule, VAE decode), muxes the audio with the
-    frames exactly as the H.264 save node does, and shows the result on itself -- so the graph is
-    three nodes and every wire ends here.
+    It runs the vendor chain internally (clip scaled to 0.4 MP, frozen text conditioning, vendor
+    conditioning build, SlimDiT weights + shift, euler sampler on the 3/4/6-step schedule) and hands
+    the latent out, so decoding and saving stay the ordinary visible nodes: latent -> VAE Decode
+    (MiniMax-H3 video VAE) -> Save Video. The VAE and the driving audio come back out as well, so
+    both downstream wires can come from this node.
     """
 
     CATEGORY = "slimdit"
     FUNCTION = "run"
-    RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("frames",)
-    OUTPUT_NODE = True
+    RETURN_TYPES = ("LATENT", "VAE", "AUDIO")
+    RETURN_NAMES = ("latent", "vae", "audio")
     DESCRIPTION = (
-        "Viggle-Animate in one node: driving video + driving audio + reference still -> finished mp4. "
+        "Viggle-Animate conditioning + sampling: driving video + reference still (+ its audio) -> "
+        "video latent. Wire latent into a VAE Decode with the vae output, then save the frames. "
         "Defaults are the evaluated configuration (124 frames, 3 steps, shift 3/3)."
     )
 
@@ -415,48 +416,22 @@ class ViggleAnimateSlimDiT:
             sigmas=sigmas,
             latent_image=latent,
         )
-        images, = _node_call(comfy_nodes.VAEDecode, samples=sampled[0], vae=vae_model)
-
-        # Mux and save exactly as the H.264 save node does (same widget values as the vendor
-        # workflow, including the driving clip's audio), so the result plays on this node and the
-        # file lands in the output folder. A mux failure must not throw away a finished render.
-        ui: dict = {}
-        if "VHS_VideoCombine" in registry:
-            try:
-                combined = _node_call(
-                    registry["VHS_VideoCombine"],
-                    images=images,
-                    audio=audio,
-                    frame_rate=24,
-                    loop_count=0,
-                    filename_prefix="viggle/Viggle-Animate",
-                    format="video/h264-mp4",
-                    pix_fmt="yuv420p",
-                    crf=18,
-                    save_metadata=True,
-                    pingpong=False,
-                    trim_to_audio=False,
-                    save_output=True,
-                )
-                ui = combined.get("ui", {}) if isinstance(combined, dict) else {}
-            except Exception as exc:  # noqa: BLE001 - keep the frames even if the mux fails
-                print(f"[slimdit/viggle] mux/save failed ({type(exc).__name__}: {exc}); frames returned unwrapped", flush=True)
-        else:
-            print("[slimdit/viggle] VHS_VideoCombine not installed; frames returned unwrapped", flush=True)
-
-        text_out = f"{checkpoint} · lora={lora} · {int(steps)} steps {format_sigmas(values).strip()} · {frames} frames · seed {int(seed)}"
+        text_out = (
+            f"{checkpoint} · lora={lora} · {int(steps)} steps {format_sigmas(values).strip()} · "
+            f"{frames} frames · seed {int(seed)}"
+        )
         print(f"[slimdit/viggle] {text_out}", flush=True)
-        return {"ui": {**ui, "text": [text_out]}, "result": (images,)}
+        return {"ui": {"text": [text_out]}, "result": (sampled[0], vae_model, audio)}
 
 
 NODE_CLASS_MAPPINGS = {
     "SlimDiTLoader": SlimDiTLoader,
-    "ViggleAnimateSlimDiT": ViggleAnimateSlimDiT,
+    "ViggleAnimateH3": ViggleAnimateH3,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SlimDiTLoader": "SlimDiT Loader (weights + LoRA + VAE + steps)",
-    "ViggleAnimateSlimDiT": "Viggle Animate (one node: video + still -> frames)",
+    "ViggleAnimateH3": "viggle-animate-h3 (video + still -> video latent)",
 }
 
 #: Conversion/inspection helpers. Developer tools, so they stay out of the node library unless

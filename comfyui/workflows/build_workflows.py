@@ -22,12 +22,13 @@ VAE = "minimax_h3_video_vae_fp16.safetensors"
 TEXT_COND = "fixed_embed_fwd_anyframe.safetensors"
 
 NOTE_ONECLICK = (
-    "一键版:三个输入进同一个节点,结果直接在那个节点上播放。\n"
-    "  1. 左边放驱动视频(它会同时给出画面和声音)和参考图(最好是同一镜头里改绘的一帧)\n"
+    "viggle-animate-h3:视频 + 参考图 + 音频 进同一个节点,它输出 video latent。\n"
+    "  1. 左边放驱动视频(画面和声音都从这里来)和参考图(最好是同一镜头里改绘的一帧)\n"
     "  2. 点 Run\n"
-    "  3. 生成节点自己就把 mp4 存好了(带驱动视频的原声),节点上直接能预览\n\n"
-    "生成节点里的默认值 = 官方评测配置(3 步 / 124 帧 / shift 3/3)。\n"
-    "想换权重/LoRA 就在节点的下拉里选;seed 默认 randomize,所以再点一次 Run 会真实重跑。"
+    "  3. 右边 VHS_VideoCombine 出 mp4(带驱动视频原声)\n\n"
+    "连线:驱动视频 IMAGE -> 节点 video;驱动视频 audio -> 节点 audio 和保存节点;\n"
+    "参考图 IMAGE -> 节点 reference_image;节点 latent -> VAE Decode;节点 vae -> VAE Decode;\n"
+    "VAE Decode IMAGE -> 保存节点。默认值 = 官方评测配置(3 步 / 124 帧 / shift 3/3)。"
 )
 
 
@@ -139,18 +140,18 @@ def loader_node(node_id: int, pos: list[int]) -> dict:
 
 
 def one_click(base: dict) -> None:
+    """Standard, fully wired graph: video + still + audio -> viggle-animate-h3 -> latent -> VAE
+    decode -> save mp4. Everything on screen and legible."""
     g = Graph(base)
-    # Three nodes. Every wire ends on the generator: frames, the clip's audio and the still all go
-    # *into* it, and it muxes and saves the mp4 itself. The saved view keeps that readable.
     video = g.take("VHS_LoadVideo", [0, 0])
-    video["size"] = [340, 280]
-    image = g.take("LoadImage", [0, 340])
-    image["size"] = [340, 330]
-    gen = g.add({
+    video["size"] = [330, 280]
+    image = g.take("LoadImage", [0, 360])
+    image["size"] = [330, 330]
+    node = g.add({
         "id": 100,
-        "type": "ViggleAnimateSlimDiT",
-        "pos": [470, 40],
-        "size": [380, 330],
+        "type": "ViggleAnimateH3",
+        "pos": [400, 40],
+        "size": [380, 340],
         "flags": {},
         "order": 0,
         "mode": 0,
@@ -159,18 +160,31 @@ def one_click(base: dict) -> None:
             {"name": "reference_image", "type": "IMAGE", "link": None},
             {"name": "audio", "type": "AUDIO", "link": None, "shape": 7},
         ],
-        "outputs": [{"name": "frames", "type": "IMAGE", "links": [], "slot_index": 0}],
-        "properties": {"Node name for S&R": "ViggleAnimateSlimDiT"},
+        "outputs": [
+            {"name": "latent", "type": "LATENT", "links": [], "slot_index": 0},
+            {"name": "vae", "type": "VAE", "links": [], "slot_index": 1},
+            {"name": "audio", "type": "AUDIO", "links": [], "slot_index": 2},
+        ],
+        "properties": {"Node name for S&R": "ViggleAnimateH3"},
         "widgets_values": ["3", 124, 0, "randomize", CHECKPOINT, LORA, VAE, TEXT_COND, 3.0, 3.0],
-        "title": "② 生成(默认值即官方配置)",
+        "title": "viggle-animate-h3",
         "color": "#432",
         "bgcolor": "#653",
     })
-    g.connect(video, "IMAGE", gen, "video")
-    g.connect(video, "audio", gen, "audio")
-    g.connect(image, "IMAGE", gen, "reference_image")
-    g.save("viggle-animate-slimdit.json", NOTE_ONECLICK, ds={"scale": 0.8, "offset": [500, 80]}, note_pos=[470, 420])
+    decode = g.take("VAEDecode", [860, 140])
+    decode["size"] = [250, 120]
+    decode["title"] = "MiniMax-H3 VAE Decode"
+    combine = g.take("VHS_VideoCombine", [400, 470])
+    combine["size"] = [400, 330]
 
+    g.connect(video, "IMAGE", node, "video")
+    g.connect(video, "audio", node, "audio")
+    g.connect(image, "IMAGE", node, "reference_image")
+    g.connect(node, "latent", decode, "samples")
+    g.connect(node, "vae", decode, "vae")
+    g.connect(node, "audio", combine, "audio")
+    g.connect(decode, "IMAGE", combine, "images")
+    g.save("viggle-animate-slimdit.json", NOTE_ONECLICK, ds={"scale": 0.7, "offset": [500, 70]}, note_pos=[860, 430])
 
 
 def main() -> int:

@@ -23,13 +23,13 @@ def load_nodes(monkeypatch, *, dev: bool):
 
 
 def test_node_library_ships_two_nodes(monkeypatch):
-    assert set(load_nodes(monkeypatch, dev=False).NODE_CLASS_MAPPINGS) == {"SlimDiTLoader", "ViggleAnimateSlimDiT"}
+    assert set(load_nodes(monkeypatch, dev=False).NODE_CLASS_MAPPINGS) == {"SlimDiTLoader", "ViggleAnimateH3"}
 
 
 def test_dev_nodes_need_the_env_var(monkeypatch):
     assert set(load_nodes(monkeypatch, dev=True).NODE_CLASS_MAPPINGS) == {
         "SlimDiTLoader",
-        "ViggleAnimateSlimDiT",
+        "ViggleAnimateH3",
         "SlimDiTConvert",
         "SlimDiTInspect",
         "SlimDiTSolAttnStats",
@@ -43,8 +43,12 @@ def test_loader_carries_the_weight_choices(monkeypatch):
     assert required["steps"][0] == ["3", "4", "6"]
 
 
-def test_one_node_takes_two_inputs_and_the_four_choices(monkeypatch):
-    required = load_nodes(monkeypatch, dev=False).ViggleAnimateSlimDiT.INPUT_TYPES()["required"]
+def test_h3_node_takes_three_inputs_and_outputs_the_latent(monkeypatch):
+    """The graph depends on this shape: video + still (+ audio) in, latent + vae + audio out."""
+    node = load_nodes(monkeypatch, dev=False).ViggleAnimateH3
+    required = node.INPUT_TYPES()["required"]
     assert list(required)[:5] == ["video", "reference_image", "steps", "length", "seed"]
     assert required["steps"][0] == ["3", "4", "6"]
     assert required["length"][1]["default"] == 124
+    assert "audio" in node.INPUT_TYPES()["optional"]
+    assert node.RETURN_NAMES == ("latent", "vae", "audio")

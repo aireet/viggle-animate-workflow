@@ -2,7 +2,7 @@
  "id": "viggle-animate-slimdit",
  "revision": 0,
  "last_node_id": 101,
- "last_link_id": 3,
+ "last_link_id": 7,
  "nodes": [
   {
    "id": 3,
@@ -12,7 +12,7 @@
     0
    ],
    "size": [
-    340,
+    330,
     280
    ],
    "flags": {},
@@ -81,10 +81,10 @@
    "type": "LoadImage",
    "pos": [
     0,
-    340
+    360
    ],
    "size": [
-    340,
+    330,
     330
    ],
    "flags": {},
@@ -119,14 +119,14 @@
   },
   {
    "id": 100,
-   "type": "ViggleAnimateSlimDiT",
+   "type": "ViggleAnimateH3",
    "pos": [
-    470,
+    400,
     40
    ],
    "size": [
     380,
-    330
+    340
    ],
    "flags": {},
    "order": 2,
@@ -151,14 +151,32 @@
    ],
    "outputs": [
     {
-     "name": "frames",
-     "type": "IMAGE",
-     "links": [],
+     "name": "latent",
+     "type": "LATENT",
+     "links": [
+      4
+     ],
      "slot_index": 0
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "links": [
+      5
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "links": [
+      6
+     ],
+     "slot_index": 2
     }
    ],
    "properties": {
-    "Node name for S&R": "ViggleAnimateSlimDiT"
+    "Node name for S&R": "ViggleAnimateH3"
    },
    "widgets_values": [
     "3",
@@ -172,29 +190,139 @@
     3.0,
     3.0
    ],
-   "title": "\u2461 \u751f\u6210(\u9ed8\u8ba4\u503c\u5373\u5b98\u65b9\u914d\u7f6e)",
+   "title": "viggle-animate-h3",
    "color": "#432",
    "bgcolor": "#653"
+  },
+  {
+   "id": 17,
+   "type": "VAEDecode",
+   "pos": [
+    860,
+    140
+   ],
+   "size": [
+    250,
+    120
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 4
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      7
+     ]
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0",
+    "Node name for S&R": "VAEDecode"
+   },
+   "color": "#322",
+   "bgcolor": "#533",
+   "title": "MiniMax-H3 VAE Decode"
+  },
+  {
+   "id": 21,
+   "type": "VHS_VideoCombine",
+   "pos": [
+    400,
+    470
+   ],
+   "size": [
+    400,
+    330
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 7
+    },
+    {
+     "name": "audio",
+     "shape": 7,
+     "type": "AUDIO",
+     "link": 6
+    },
+    {
+     "name": "meta_batch",
+     "shape": 7,
+     "type": "VHS_BatchManager",
+     "link": null
+    },
+    {
+     "name": "vae",
+     "shape": 7,
+     "type": "VAE",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "Filenames",
+     "type": "VHS_FILENAMES",
+     "links": []
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfyui-videohelpersuite",
+    "ver": "4d907bee61e92c2e65af3bd6383a4e4d356126d1",
+    "Node name for S&R": "VHS_VideoCombine"
+   },
+   "widgets_values": {
+    "frame_rate": 24,
+    "loop_count": 0,
+    "filename_prefix": "viggle/Viggle-Animate",
+    "format": "video/h264-mp4",
+    "pix_fmt": "yuv420p",
+    "crf": 18,
+    "save_metadata": true,
+    "trim_to_audio": false,
+    "pingpong": false,
+    "save_output": true
+   },
+   "color": "#222",
+   "bgcolor": "#000"
   },
   {
    "id": 101,
    "type": "Note",
    "pos": [
-    470,
-    420
+    860,
+    430
    ],
    "size": [
     620,
     160
    ],
    "flags": {},
-   "order": 3,
+   "order": 5,
    "mode": 0,
    "inputs": [],
    "outputs": [],
    "properties": {},
    "widgets_values": [
-    "\u4e00\u952e\u7248:\u4e09\u4e2a\u8f93\u5165\u8fdb\u540c\u4e00\u4e2a\u8282\u70b9,\u7ed3\u679c\u76f4\u63a5\u5728\u90a3\u4e2a\u8282\u70b9\u4e0a\u64ad\u653e\u3002\n  1. \u5de6\u8fb9\u653e\u9a71\u52a8\u89c6\u9891(\u5b83\u4f1a\u540c\u65f6\u7ed9\u51fa\u753b\u9762\u548c\u58f0\u97f3)\u548c\u53c2\u8003\u56fe(\u6700\u597d\u662f\u540c\u4e00\u955c\u5934\u91cc\u6539\u7ed8\u7684\u4e00\u5e27)\n  2. \u70b9 Run\n  3. \u751f\u6210\u8282\u70b9\u81ea\u5df1\u5c31\u628a mp4 \u5b58\u597d\u4e86(\u5e26\u9a71\u52a8\u89c6\u9891\u7684\u539f\u58f0),\u8282\u70b9\u4e0a\u76f4\u63a5\u80fd\u9884\u89c8\n\n\u751f\u6210\u8282\u70b9\u91cc\u7684\u9ed8\u8ba4\u503c = \u5b98\u65b9\u8bc4\u6d4b\u914d\u7f6e(3 \u6b65 / 124 \u5e27 / shift 3/3)\u3002\n\u60f3\u6362\u6743\u91cd/LoRA \u5c31\u5728\u8282\u70b9\u7684\u4e0b\u62c9\u91cc\u9009;seed \u9ed8\u8ba4 randomize,\u6240\u4ee5\u518d\u70b9\u4e00\u6b21 Run \u4f1a\u771f\u5b9e\u91cd\u8dd1\u3002"
+    "viggle-animate-h3:\u89c6\u9891 + \u53c2\u8003\u56fe + \u97f3\u9891 \u8fdb\u540c\u4e00\u4e2a\u8282\u70b9,\u5b83\u8f93\u51fa video latent\u3002\n  1. \u5de6\u8fb9\u653e\u9a71\u52a8\u89c6\u9891(\u753b\u9762\u548c\u58f0\u97f3\u90fd\u4ece\u8fd9\u91cc\u6765)\u548c\u53c2\u8003\u56fe(\u6700\u597d\u662f\u540c\u4e00\u955c\u5934\u91cc\u6539\u7ed8\u7684\u4e00\u5e27)\n  2. \u70b9 Run\n  3. \u53f3\u8fb9 VHS_VideoCombine \u51fa mp4(\u5e26\u9a71\u52a8\u89c6\u9891\u539f\u58f0)\n\n\u8fde\u7ebf:\u9a71\u52a8\u89c6\u9891 IMAGE -> \u8282\u70b9 video;\u9a71\u52a8\u89c6\u9891 audio -> \u8282\u70b9 audio \u548c\u4fdd\u5b58\u8282\u70b9;\n\u53c2\u8003\u56fe IMAGE -> \u8282\u70b9 reference_image;\u8282\u70b9 latent -> VAE Decode;\u8282\u70b9 vae -> VAE Decode;\nVAE Decode IMAGE -> \u4fdd\u5b58\u8282\u70b9\u3002\u9ed8\u8ba4\u503c = \u5b98\u65b9\u8bc4\u6d4b\u914d\u7f6e(3 \u6b65 / 124 \u5e27 / shift 3/3)\u3002"
    ],
    "color": "#432",
    "bgcolor": "#653",
@@ -225,16 +353,48 @@
    100,
    1,
    "IMAGE"
+  ],
+  [
+   4,
+   100,
+   0,
+   17,
+   0,
+   "LATENT"
+  ],
+  [
+   5,
+   100,
+   1,
+   17,
+   1,
+   "VAE"
+  ],
+  [
+   6,
+   100,
+   2,
+   21,
+   1,
+   "AUDIO"
+  ],
+  [
+   7,
+   17,
+   0,
+   21,
+   0,
+   "IMAGE"
   ]
  ],
  "groups": [],
  "config": {},
  "extra": {
   "ds": {
-   "scale": 0.8,
+   "scale": 0.7,
    "offset": [
     500,
-    80
+    70
    ]
   }
  },
