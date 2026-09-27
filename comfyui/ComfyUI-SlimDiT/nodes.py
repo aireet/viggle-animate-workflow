@@ -7,6 +7,7 @@ nodes are thin wrappers that pick sane paths, report progress and never touch gr
 from __future__ import annotations
 
 import json
+import os
 import struct
 import sys
 from pathlib import Path
@@ -134,14 +135,49 @@ class SlimDiTInspect:
         return (text,)
 
 
+class SlimDiTSolAttnStats:
+    """Report what the MiniMax-H3 attention override has done this session."""
+
+    CATEGORY = "slimdit"
+    FUNCTION = "run"
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("stats",)
+    OUTPUT_NODE = True
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {}}
+
+    def run(self):
+        from . import sol_attn
+
+        stats = sol_attn.STATS
+        sparse = int(stats.get("sparse_calls", 0))
+        fallback = int(stats.get("fallback_calls", 0))
+        info = {
+            "enabled": os.environ.get("SLIMDIT_SOL_ATTN", "0"),
+            "install_hint": "set SLIMDIT_SOL_ATTN=1 before starting ComfyUI to enable",
+            "calls": int(stats.get("calls", 0)),
+            "sparse_calls": sparse,
+            "fallback_calls": fallback,
+            "mean_sparse_ms": round(1000 * stats.get("sparse_seconds", 0.0) / sparse, 2) if sparse else None,
+            "mean_fallback_ms": round(1000 * stats.get("fallback_seconds", 0.0) / fallback, 2) if fallback else None,
+        }
+        text = json.dumps(info, indent=2)
+        print(text)
+        return (text,)
+
+
 NODE_CLASS_MAPPINGS = {
     "SlimDiTConvert": SlimDiTConvert,
     "SlimDiTInspect": SlimDiTInspect,
+    "SlimDiTSolAttnStats": SlimDiTSolAttnStats,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SlimDiTConvert": "SlimDiT Convert (INT8 + curves)",
     "SlimDiTInspect": "SlimDiT Inspect Checkpoint",
+    "SlimDiTSolAttnStats": "SlimDiT Attention Override Stats",
 }
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]

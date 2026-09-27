@@ -149,13 +149,14 @@ land within noise of each other; NVFP4's win is size and 8 GB of VRAM, not speed
 - [x] INT8 ConvRot conversion of MiniMax-H3 with analytic adaln curves
 - [x] NVFP4 variant (`--quant nvfp4`, 11.7 GiB instead of 19.6 GiB, softer renders)
 - [x] ComfyUI node: convert + inspect checkpoints from inside the graph
+- [x] Attention override (sol_attn sink mode) shipped in the node pack, opt-in
+- [ ] Zero-copy attention: read the strided q/k/v in place instead of materialising three copies
 - [ ] Mixed INT8/NVFP4: keep sensitive blocks in INT8, NVFP4 for the rest
-- [ ] End-to-end render profile; attention is the remaining big term (the INT8 GEMMs are done)
 
 ## Notes on kernels
 
-`tools/bench_int8.py` measures comfy-kitchen's INT8 ConvRot linear on the shapes this project
-emits. Measured (M = tokens per forward, i.e. the whole sequence at once):
+**The quantized linears are not the lever.** `tools/bench_int8.py` measures comfy-kitchen's INT8
+ConvRot linear on the shapes this project emits:
 
 | device | M=1 | M=512 | M=2048 |
 |---|---|---|---|
@@ -163,8 +164,24 @@ emits. Measured (M = tokens per forward, i.e. the whole sequence at once):
 | RTX 4090 (sm_89) | 0.079-0.174 ms, 455-911 GiB/s | 356-477 TFLOP/s | 412-498 TFLOP/s |
 
 Both architectures run at ~75 % of their INT8 peak and at memory-bandwidth limit for a single
-token, so a custom INT8 GEMM kernel would not buy anything. The remaining headroom in this
-pipeline is attention and the surrounding elementwise work, not the quantized linears.
+token, and a kernel-level profile of the same stack puts INT8 GEMMs at only **21.8 %** of a
+six-step sampling loop. NVFP4 was measured in the same place: 460-802 TOPS, i.e. ~1.3x the INT8
+throughput on the GEMM alone, which is why the NVFP4 checkpoint buys size and VRAM (~9 % end to
+end in our rig) rather than speed.
+
+**Attention is the lever.** The same profile: **bf16 attention is 67.3 % of sampling** (36.0 s of
+55.8 s, 300 calls at ~120 ms on a 5090 — already ~216 TFLOPS, the card's dense bf16 peak), while
+decode and H.264 encode add ~13 s. Doing *less* attention work is the only remaining big win, and
+the packed MiniMax-H3 sequence has the structure for it: text and conditioning rows sit in one
+contiguous span at the front, so they can be pinned as exact keys (`sink_blocks`) while only the
+target rows are attended sparsely. ComfyUI already publishes that layout
+(`transformer_options["minimax_h3_layout"]`), so the node pack ships the override
+(`comfyui/ComfyUI-SlimDiT/sol_attn.py`, opt-in via `SLIMDIT_SOL_ATTN=1`, falls back to dense when
+the layout is missing or the sequence is short).
+
+Measured on the service path with identical weights and 10 seeds: sampling 51.85 s -> 36.26 s
+(1.42x), end to end 63.7 s -> 46.1 s, and the output sits 32.13 dB from the dense baseline, i.e.
+above the 30.85 dB run-to-run numeric floor.
 
 ## Notes
 
