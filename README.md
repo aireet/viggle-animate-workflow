@@ -215,13 +215,30 @@ rejects the strided views outright (`RuntimeError: The size of tensor a (56) mus
 reads the strided q/k/v in place, not a two-line change. Deferred; until then set
 `SLIMDIT_SOL_ATTN_MAX_SEQ` to fall back to dense attention on clips that would not fit.
 
-## Notes
+## Comparison with the community checkpoint
 
-The analytic construction here is *more* accurate than the reference `pruned_int8_convrot`
-checkpoint's curve path: measuring its stored `A @ table^T` against the exact modulation family on
-the same timestep grid gives a 30.8 % relative error (its `adaln_t_table` does match the
-input-side basis used here to 0.03 degrees, but its per-block matrix does not reproduce the
-official modulation). This project instead derives both factors from the released weights.
+`drbaph/Viggle-Animate-ComfyUI`'s `pruned_int8_convrot` is the same idea, and the two files come
+out near-equivalent: 936 tensors each, identical dtypes/shapes, 19.59 GiB both. Measured with
+`tools/check_curves.py` (adaln) and `tools/verify_checkpoint.py` (weights):
+
+| | slimdit (this project) | community `pruned_int8_convrot` |
+|---|---|---|
+| adaln curve error, full grid | 0.0256 % | 0.0256 % |
+| adaln curve error, at the four sampled timesteps | 0.0643 % | 0.0643 % |
+| per-block `A` vs the other file | identical up to a global sign (`|A|` matches to 4 digits) | |
+| INT8 error vs official bf16, 5 layers | 0.88-1.20 % | 0.91-1.22 % |
+| quantized-domain difference between the two files | 0.70 % | |
+| warm render, stock ComfyUI (124 frames) | 40.6 s | 40.3 s |
+
+The curve path is therefore **not** a differentiator: both files independently land on the same
+analytic rank-8 construction (a shared input-side basis plus `A = W @ P`, up to a sign that
+cancels inside `A @ table^T`). What this project adds is the reproducible pipeline (converter plus
+the content checks that caught the fc1 swiglu order), an NVFP4 variant, the ComfyUI node pack, and
+the attention override that takes a render from ~41 s to ~33 s.
+
+> An earlier revision of this file claimed the community curve does not reproduce the official
+> modulation. That was wrong — it came from a stale local tensor dump, not from the checkpoint.
+> `tools/check_curves.py` re-derives the numbers from the actual files; trust it over prose.
 
 Algorithms in `slimdit/hadamard.py` and `slimdit/int8.py` mirror `comfy_kitchen`
 (Apache-2.0) so that the emitted checkpoints are exactly what the ComfyUI runtime expects.
