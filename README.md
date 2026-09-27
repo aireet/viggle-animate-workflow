@@ -183,6 +183,21 @@ Measured on the service path with identical weights and 10 seeds: sampling 51.85
 (1.42x), end to end 63.7 s -> 46.1 s, and the output sits 32.13 dB from the dense baseline, i.e.
 above the 30.85 dB run-to-run numeric floor.
 
+Measured again on this project's ComfyUI rig (124 frames, 4-step DMD, seed varied per run):
+
+| | override off | override on | |
+|---|---|---|---|
+| first run (loads the model) | 61.3 s | 56.3 s | |
+| **steady state** | **41.2 s** | **33.1 s** | **-20 %** |
+| sampler's three steps | 26 s | 22 s | |
+| model-init warmup forward | 14.3 s | 7.7 s | |
+| output vs dense, same seed | | 39.0 dB / 35.2 dB | above the 30.85 dB numeric floor |
+
+Enable with `SLIMDIT_SOL_ATTN=1` before starting ComfyUI; the override prints
+`[slimdit/sol-attn] installed (...)` on startup and `SlimDiT Attention Override Stats` reports
+how many calls took the sparse path. It only ever patches `comfy.ldm.minimax.model`, so other
+models in the same process are unaffected.
+
 ## Notes
 
 The analytic construction here is *more* accurate than the reference `pruned_int8_convrot`
