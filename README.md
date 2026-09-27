@@ -125,13 +125,14 @@ Measured on the released weights:
 | file vs reference checkpoint | 936 tensors, same dtypes/shapes, values agree to 0.78 % |
 | INT8 weight error | 0.88-0.94 % per layer |
 | curve modulation error | 0.019 % (grid) / 0.064 % (sampled timesteps) |
-| render | 124-frame 480x864 clip, 4-step DMD sampler: **38.4 dB PSNR against the reference checkpoint's render** (visually identical) |
+| render, INT8 | 124-frame 480x864 clip, 4-step DMD sampler: **38.4 dB PSNR against the reference checkpoint's render** (visually identical) |
+| render, NVFP4 | same structure, visibly softer: 11.73 GiB (−40 %) at 9.4 % weight error, 22.2 dB PSNR against the INT8 build |
 
 ## Status
 
 - [x] INT8 ConvRot conversion of MiniMax-H3 with analytic adaln curves
-- [x] NVFP4 variant (`--quant nvfp4`, ~10 GiB instead of 19.6 GiB)
-- [ ] NVFP4 render A/B against the INT8 checkpoint
+- [x] NVFP4 variant (`--quant nvfp4`, 11.7 GiB instead of 19.6 GiB, softer renders)
+- [ ] Mixed INT8/NVFP4: keep sensitive blocks in INT8, NVFP4 for the rest
 - [ ] sm89 / sm120 kernel pack (Triton INT8 + curve ops) with arch-aware routing
 - [x] ComfyUI node: convert + inspect checkpoints from inside the graph
 
