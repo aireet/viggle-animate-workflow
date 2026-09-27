@@ -8,12 +8,12 @@
    "id": 3,
    "type": "VHS_LoadVideo",
    "pos": [
-    40,
-    40
+    0,
+    0
    ],
    "size": [
-    380,
-    700
+    340,
+    280
    ],
    "flags": {},
    "order": 0,
@@ -49,7 +49,7 @@
      "name": "audio",
      "type": "AUDIO",
      "links": [
-      2
+      3
      ]
     },
     {
@@ -74,19 +74,18 @@
     "format": "AnimateDiff"
    },
    "color": "#323",
-   "bgcolor": "#535",
-   "title": "\u2460 \u9a71\u52a8\u89c6\u9891(\u52a8\u4f5c\u6765\u6e90)"
+   "bgcolor": "#535"
   },
   {
    "id": 5,
    "type": "LoadImage",
    "pos": [
-    40,
-    340
+    0,
+    320
    ],
    "size": [
-    380,
-    650
+    340,
+    330
    ],
    "flags": {},
    "order": 1,
@@ -97,7 +96,7 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      3
+      2
      ]
     },
     {
@@ -116,15 +115,14 @@
     "image"
    ],
    "color": "#323",
-   "bgcolor": "#535",
-   "title": "\u2460 \u53c2\u8003\u56fe"
+   "bgcolor": "#535"
   },
   {
-   "id": 100,
-   "type": "ViggleAnimateSlimDiT",
+   "id": 21,
+   "type": "VHS_VideoCombine",
    "pos": [
-    540,
-    40
+    840,
+    0
    ],
    "size": [
     400,
@@ -132,61 +130,6 @@
    ],
    "flags": {},
    "order": 2,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "video",
-     "type": "IMAGE",
-     "link": 1
-    },
-    {
-     "name": "reference_image",
-     "type": "IMAGE",
-     "link": 3
-    }
-   ],
-   "outputs": [
-    {
-     "name": "frames",
-     "type": "IMAGE",
-     "links": [
-      4
-     ],
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "ViggleAnimateSlimDiT"
-   },
-   "widgets_values": [
-    "3",
-    124,
-    0,
-    "randomize",
-    "minimax_h3_ref2va_slimdit_int8_convrot.safetensors",
-    "viggle_animate_dmd_lora.safetensors",
-    "minimax_h3_video_vae_fp16.safetensors",
-    "fixed_embed_fwd_anyframe.safetensors",
-    3.0,
-    3.0
-   ],
-   "title": "\u2461 \u751f\u6210(\u9ed8\u8ba4\u503c\u5373\u5b98\u65b9\u914d\u7f6e)",
-   "color": "#432",
-   "bgcolor": "#653"
-  },
-  {
-   "id": 21,
-   "type": "VHS_VideoCombine",
-   "pos": [
-    1000,
-    40
-   ],
-   "size": [
-    430,
-    970
-   ],
-   "flags": {},
-   "order": 3,
    "mode": 0,
    "inputs": [
     {
@@ -198,7 +141,7 @@
      "name": "audio",
      "shape": 7,
      "type": "AUDIO",
-     "link": 2
+     "link": 3
     },
     {
      "name": "meta_batch",
@@ -238,19 +181,73 @@
     "save_output": true
    },
    "color": "#222",
-   "bgcolor": "#000",
-   "title": "\u2462 \u4fdd\u5b58 mp4(\u5e26\u539f\u58f0)"
+   "bgcolor": "#000"
+  },
+  {
+   "id": 100,
+   "type": "ViggleAnimateSlimDiT",
+   "pos": [
+    400,
+    60
+   ],
+   "size": [
+    380,
+    300
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "IMAGE",
+     "link": 1
+    },
+    {
+     "name": "reference_image",
+     "type": "IMAGE",
+     "link": 2
+    }
+   ],
+   "outputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ViggleAnimateSlimDiT"
+   },
+   "widgets_values": [
+    "3",
+    124,
+    0,
+    "randomize",
+    "minimax_h3_ref2va_slimdit_int8_convrot.safetensors",
+    "viggle_animate_dmd_lora.safetensors",
+    "minimax_h3_video_vae_fp16.safetensors",
+    "fixed_embed_fwd_anyframe.safetensors",
+    3.0,
+    3.0
+   ],
+   "title": "\u2461 \u751f\u6210(\u9ed8\u8ba4\u503c\u5373\u5b98\u65b9\u914d\u7f6e)",
+   "color": "#432",
+   "bgcolor": "#653"
   },
   {
    "id": 101,
    "type": "Note",
    "pos": [
-    40,
-    620
+    400,
+    420
    ],
    "size": [
     620,
-    230
+    160
    ],
    "flags": {},
    "order": 4,
@@ -259,11 +256,11 @@
    "outputs": [],
    "properties": {},
    "widgets_values": [
-    "\u4e09\u6b65:\n  1. \u5de6\u8fb9\u653e\u9a71\u52a8\u89c6\u9891 + \u53c2\u8003\u56fe(\u53c2\u8003\u56fe\u6700\u597d\u662f\u540c\u4e00\u955c\u5934\u91cc\u6539\u7ed8\u7684\u4e00\u5e27)\n  2. \u70b9 Run\n  3. \u7ed3\u679c\u5728\u53f3\u8fb9,\u5df2\u5e26\u9a71\u52a8\u89c6\u9891\u7684\u539f\u58f0\n\n\u751f\u6210\u8282\u70b9\u91cc\u7684\u9ed8\u8ba4\u503c\u5c31\u662f\u5b98\u65b9\u8bc4\u6d4b\u7528\u7684\u914d\u7f6e:3 \u6b65\u3001124 \u5e27\u3001shift 3/3\u3002\n\u60f3\u6362\u6743\u91cd/LoRA \u5c31\u5728\u90a3\u4e2a\u8282\u70b9\u7684\u4e0b\u62c9\u91cc\u9009;\u8dd1\u7b2c\u4e8c\u6b21\u8bf7\u6539 seed(\u5426\u5219\u76f4\u63a5\u547d\u4e2d\u7f13\u5b58)\u3002"
+    "\u4e00\u952e\u7248:\u4e24\u6b65\u5c31\u80fd\u51fa\u7247\u3002\n  1. \u5de6\u8fb9\u653e\u9a71\u52a8\u89c6\u9891 + \u53c2\u8003\u56fe(\u53c2\u8003\u56fe\u6700\u597d\u662f\u540c\u4e00\u955c\u5934\u91cc\u6539\u7ed8\u7684\u4e00\u5e27)\n  2. \u70b9 Run,\u7ed3\u679c\u5728\u53f3\u8fb9,\u5df2\u5e26\u9a71\u52a8\u89c6\u9891\u7684\u539f\u58f0\n\n\u751f\u6210\u8282\u70b9\u91cc\u7684\u9ed8\u8ba4\u503c = \u5b98\u65b9\u8bc4\u6d4b\u914d\u7f6e(3 \u6b65 / 124 \u5e27 / shift 3/3)\u3002\n\u60f3\u770b\u6bcf\u4e00\u6b65\u5728\u505a\u4ec0\u4e48\u3001\u60f3\u6539\u4e2d\u95f4\u7684\u6570\u636e\u6d41,\u7528\u53e6\u4e00\u4efd\u300c\u5168\u6d41\u7a0b\u7248\u300d\u3002"
    ],
-   "title": "\u8bf4\u660e",
    "color": "#432",
-   "bgcolor": "#653"
+   "bgcolor": "#653",
+   "title": "\u8bf4\u660e"
   }
  ],
  "links": [
@@ -277,19 +274,19 @@
   ],
   [
    2,
-   3,
-   2,
-   21,
-   1,
-   "AUDIO"
-  ],
-  [
-   3,
    5,
    0,
    100,
    1,
    "IMAGE"
+  ],
+  [
+   3,
+   3,
+   2,
+   21,
+   1,
+   "AUDIO"
   ],
   [
    4,
@@ -306,8 +303,8 @@
   "ds": {
    "scale": 0.6,
    "offset": [
-    50,
-    60
+    470,
+    80
    ]
   }
  },
