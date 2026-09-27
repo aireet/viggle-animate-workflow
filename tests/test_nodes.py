@@ -50,5 +50,5 @@ def test_h3_node_takes_three_inputs_and_outputs_the_latent(monkeypatch):
     assert list(required)[:5] == ["video", "reference_image", "steps", "length", "seed"]
     assert required["steps"][0] == ["3", "4", "6"]
     assert required["length"][1]["default"] == 124
-    assert "audio" in node.INPUT_TYPES()["optional"]
+    assert required["audio"][0] == "AUDIO"
     assert node.RETURN_NAMES == ("latent", "vae", "audio")

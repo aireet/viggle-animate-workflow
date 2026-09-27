@@ -158,7 +158,7 @@ def one_click(base: dict) -> None:
         "inputs": [
             {"name": "video", "type": "IMAGE", "link": None},
             {"name": "reference_image", "type": "IMAGE", "link": None},
-            {"name": "audio", "type": "AUDIO", "link": None, "shape": 7},
+            {"name": "audio", "type": "AUDIO", "link": None},
         ],
         "outputs": [
             {"name": "latent", "type": "LATENT", "links": [], "slot_index": 0},
@@ -184,7 +184,7 @@ def one_click(base: dict) -> None:
     g.connect(node, "vae", decode, "vae")
     g.connect(node, "audio", combine, "audio")
     g.connect(decode, "IMAGE", combine, "images")
-    g.save("viggle-animate-slimdit.json", NOTE_ONECLICK, ds={"scale": 0.7, "offset": [500, 70]}, note_pos=[860, 430])
+    g.save("viggle-animate-h3.json", NOTE_ONECLICK, ds={"scale": 0.8, "offset": [500, 70]}, note_pos=[860, 430])
 
 
 def main() -> int:

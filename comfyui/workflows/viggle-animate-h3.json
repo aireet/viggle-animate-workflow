@@ -1,5 +1,5 @@
 {
- "id": "viggle-animate-slimdit",
+ "id": "viggle-animate-h3",
  "revision": 0,
  "last_node_id": 101,
  "last_link_id": 7,
@@ -145,8 +145,7 @@
     {
      "name": "audio",
      "type": "AUDIO",
-     "link": 2,
-     "shape": 7
+     "link": 2
     }
    ],
    "outputs": [
@@ -391,7 +390,7 @@
  "config": {},
  "extra": {
   "ds": {
-   "scale": 0.7,
+   "scale": 0.8,
    "offset": [
     500,
     70

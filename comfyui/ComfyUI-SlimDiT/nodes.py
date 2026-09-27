@@ -360,9 +360,7 @@ class ViggleAnimateH3:
                 "text_cond": (text_conds, {"default": first(text_conds, "fixed_embed") or (text_conds[0] if text_conds else "")}),
                 "shift_video": ("FLOAT", {"default": 3.0, "min": 0.01, "max": 100.0, "step": 0.01}),
                 "shift_audio": ("FLOAT", {"default": 3.0, "min": 0.01, "max": 100.0, "step": 0.01}),
-            },
-            "optional": {
-                "audio": ("AUDIO", {"tooltip": "The driving clip's audio, muxed into the mp4 (Load Video's audio output)."}),
+                "audio": ("AUDIO", {"tooltip": "The driving clip's audio (Load Video's audio output); it is carried through to the save node."}),
             },
         }
 
