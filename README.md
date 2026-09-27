@@ -149,8 +149,7 @@ land within noise of each other; NVFP4's win is size and 8 GB of VRAM, not speed
 - [x] INT8 ConvRot conversion of MiniMax-H3 with analytic adaln curves
 - [x] NVFP4 variant (`--quant nvfp4`, 11.7 GiB instead of 19.6 GiB, softer renders)
 - [x] ComfyUI node: convert + inspect checkpoints from inside the graph
-- [x] Attention override (sol_attn sink mode) shipped in the node pack, opt-in
-- [ ] Zero-copy attention: read the strided q/k/v in place instead of materialising three copies
+- [x] Attention router shipped in the node pack (sol <=243 frames, in-place Triton kernel beyond, dense fallback), opt-in
 - [ ] Mixed INT8/NVFP4: keep sensitive blocks in INT8, NVFP4 for the rest
 
 ## Notes on kernels
@@ -193,14 +192,33 @@ Measured again on this project's ComfyUI rig (124 frames, 4-step DMD, seed varie
 | model-init warmup forward | 14.3 s | 7.7 s | |
 | output vs dense, same seed | | 39.0 dB / 35.2 dB | above the 30.85 dB numeric floor |
 
-Enable with `SLIMDIT_SOL_ATTN=1` before starting ComfyUI; the override prints
-`[slimdit/sol-attn] installed (...)` on startup and `SlimDiT Attention Override Stats` reports
-how many calls took the sparse path. It only ever patches `comfy.ldm.minimax.model`, so other
-models in the same process are unaffected.
+**No single kernel wins at every length**, so the pack ships a router
+(`comfyui/ComfyUI-SlimDiT/attention_router.py`) instead of one override. Measured on the service
+path at 6 steps (same weights, 32 GiB card):
 
-**Strided q/k/v (measured, deferred).** The override hands the kernel three contiguous
-`(1, S, H, D)` tensors, materialised from the model's packed buffer. At the production shape
-(S = 30026, H = 56, D = 128, bf16) that costs `tools/measure_attn_copies.py`:
+| clip | sol_attn | in-place Triton kernel |
+|---|---|---|
+| 124 frames | 33.2 s, 26.6 GiB | 38.3 s, 25.4 GiB |
+| 243 frames | 103.0 s, 28.2 GiB | 116.4 s, 25.9 GiB |
+| 379 frames | **OOM (>31.36 GiB)** | **313.7 s, 29.39 GiB** |
+
+sol_attn is faster but must keep three contiguous bf16 copies of q/k/v alive; the self-written
+kernel quantizes in place and therefore runs where sol cannot. The router chooses per call:
+
+* `sol` when the clip is short (<= 243 frames) **and** measured free memory covers the copies
+  (with a 1.5 GiB reserve and a 1.15x safety factor),
+* `triton` otherwise, and as the automatic fallback if sol still raises out-of-memory,
+* `dense` for anything the router does not recognise (a mask, a non-packed call, short sequences).
+
+Enable with `SLIMDIT_ATTN=auto` before starting ComfyUI (`sol` / `triton` / `off` force one branch);
+the legacy `VIGGLE_ATTN`, `VIGGLE_SOL_ATTN` and `VIGGLE_TRITON_ATTN` names still work. The router
+prints its install line at startup, and `SlimDiT Attention Override Stats` reports how many calls
+each branch took plus any sol->kernel OOM fallbacks. It only ever patches
+`comfy.ldm.minimax.model.optimized_attention`, so other models in the same process are unaffected.
+
+**Why the copies matter (and why the router is the answer).** sol_attn hands the kernel three
+contiguous `(1, S, H, D)` tensors, materialised from the model's packed buffer. At the production
+shape (S = 30026, H = 56, D = 128, bf16), `tools/measure_attn_copies.py` measures:
 
 | | |
 |---|---|
@@ -208,12 +226,12 @@ models in the same process are unaffected.
 | over 300 calls per 124-frame render | **0.51 s** (≈1.5 % of the render) |
 | peak VRAM added | **+1.20 GiB** |
 
-So it is a *headroom* item, not a speed item: at 124 frames the render leaves ~1.3-1.6 GiB free on
-a 32 GiB card, and these copies are most of it. `tools/probe_sol_attn_strided.py` shows the kernel
-rejects the strided views outright (`RuntimeError: The size of tensor a (56) must match ...`), and
-`sol_attn` itself takes 75.8 ms/call at this shape — so removing the copies needs a kernel that
-reads the strided q/k/v in place, not a two-line change. Deferred; until then set
-`SLIMDIT_SOL_ATTN_MAX_SEQ` to fall back to dense attention on clips that would not fit.
+So the copies are a *headroom* cost, not a time cost — and at 124 frames the render leaves only
+~1.3-1.6 GiB free on a 32 GiB card, which is exactly why sol_attn runs out of memory at longer
+clips. `tools/probe_sol_attn_strided.py` confirms sol_attn itself rejects the strided views, so
+making *it* zero-copy would need a rewrite of that kernel; the router instead switches to the
+in-place Triton kernel (no copies at all) once the length or the free memory says sol cannot fit,
+which is the same result without touching comfy-kitchen.
 
 ## Comparison with the community checkpoint
 

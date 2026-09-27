@@ -149,19 +149,19 @@ class SlimDiTSolAttnStats:
         return {"required": {}}
 
     def run(self):
-        from . import sol_attn
+        from . import ATTENTION_STATS, _ATTENTION_HANDLE
 
-        stats = sol_attn.STATS
-        sparse = int(stats.get("sparse_calls", 0))
-        fallback = int(stats.get("fallback_calls", 0))
+        stats = ATTENTION_STATS or getattr(_ATTENTION_HANDLE, "stats", {}) or {}
+        mode = os.environ.get("SLIMDIT_ATTN") or os.environ.get("VIGGLE_ATTN") or "off"
         info = {
-            "enabled": os.environ.get("SLIMDIT_SOL_ATTN", "0"),
-            "install_hint": "set SLIMDIT_SOL_ATTN=1 before starting ComfyUI to enable",
+            "mode": mode,
+            "install_hint": "set SLIMDIT_ATTN=auto before starting ComfyUI (sol for short clips, "
+                            "the in-place Triton kernel past the frame threshold)",
             "calls": int(stats.get("calls", 0)),
-            "sparse_calls": sparse,
-            "fallback_calls": fallback,
-            "mean_sparse_ms": round(1000 * stats.get("sparse_seconds", 0.0) / sparse, 2) if sparse else None,
-            "mean_fallback_ms": round(1000 * stats.get("fallback_seconds", 0.0) / fallback, 2) if fallback else None,
+            "sol_calls": int(stats.get("sol_calls", 0)),
+            "triton_calls": int(stats.get("triton_calls", 0)),
+            "dense_calls": int(stats.get("dense_calls", 0)),
+            "sol_oom_fallbacks": int(stats.get("sol_oom", 0)),
         }
         text = json.dumps(info, indent=2)
         print(text)
