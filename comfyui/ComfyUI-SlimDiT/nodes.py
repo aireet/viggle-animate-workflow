@@ -82,7 +82,7 @@ class SlimDiTConvert:
         )
         text = f"slimdit: wrote {out_path}\n{report.summary()}"
         print(text)
-        return (text,)
+        return {"ui": {"text": [text]}, "result": (text,)}
 
 
 class SlimDiTInspect:
@@ -132,7 +132,7 @@ class SlimDiTInspect:
         }
         text = json.dumps(info, indent=2)
         print(text)
-        return (text,)
+        return {"ui": {"text": [text]}, "result": (text,)}
 
 
 class SlimDiTSolAttnStats:
@@ -165,7 +165,7 @@ class SlimDiTSolAttnStats:
         }
         text = json.dumps(info, indent=2)
         print(text)
-        return (text,)
+        return {"ui": {"text": [text]}, "result": (text,)}
 
 
 NODE_CLASS_MAPPINGS = {

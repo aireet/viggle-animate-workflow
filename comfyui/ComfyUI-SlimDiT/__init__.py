@@ -15,8 +15,11 @@ from .nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
 ATTENTION_STATS: dict = {}
 
 try:
-    from .attention_router import install_attention
+    from .attention_router import attention_mode, install_attention
 
+    _MODE = attention_mode()
+    if _MODE != "off":
+        print(f"[slimdit] attention router mode = {_MODE} (sol / in-place triton / dense)", flush=True)
     _ATTENTION_HANDLE = install_attention(stats=ATTENTION_STATS)
 except Exception as exc:  # noqa: BLE001 - never break node loading over an optional fast path
     _ATTENTION_HANDLE = None
