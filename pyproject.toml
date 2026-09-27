@@ -1,0 +1,20 @@
+[project]
+name = "slimdit"
+version = "0.1.0"
+description = "Analytic low-rank + INT8/NVFP4 checkpoint slimming for ComfyUI diffusion models"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "torch>=2.1", "safetensors>=0.4", "tqdm>=4.60"]
+
+[project.optional-dependencies]
+fetch = ["huggingface_hub>=0.23"]
+dev = ["pytest>=7"]
+
+[project.scripts]
+slimdit-convert = "slimdit.convert:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["slimdit"]
