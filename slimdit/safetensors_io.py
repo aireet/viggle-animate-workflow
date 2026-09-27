@@ -95,6 +95,14 @@ class Writer:
             raise RuntimeError(f"incomplete write: {len(self._written)}/{len(self._expected)} tensors ({missing}...)")
         self._fh.close()
 
+    def abort(self) -> None:
+        """Close the file handle after a failed conversion without the completeness check.
+
+        Callers must use this in their error path so the real exception survives; the partial
+        file on disk is unusable either way.
+        """
+        self._fh.close()
+
 
 class ShardSet:
     """The official shards, memory-mapped, keyed by tensor name."""

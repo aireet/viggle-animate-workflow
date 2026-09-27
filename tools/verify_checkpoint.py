@@ -28,7 +28,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from slimdit import curve as curve_mod  # noqa: E402
-from slimdit.int8 import dequantize_convrot_weight  # noqa: E402
+from slimdit.int8 import dequantize_convrot_weight, descriptor_fields  # noqa: E402
 from slimdit.safetensors_io import ShardSet  # noqa: E402
 
 OFFICIAL_FOR = {
@@ -45,14 +45,31 @@ CURVE_KEYS = re.compile(r"adaln_t_table|adaln_proj")
 
 
 def load_value(src: ShardSet, key: str, rotated: bool = False) -> np.ndarray:
-    """Tensor as float32, dequantizing INT8 ConvRot weights.
+    """Tensor as float32, dequantizing INT8 ConvRot or NVFP4 weights.
 
-    ``rotated=True`` returns ``q * scale`` in the rotated basis, which is equivalent for
+    ``rotated=True`` returns INT8 ``q * scale`` in the rotated basis, which is equivalent for
     distance comparisons (the un-rotation is a shared orthogonal transform) and much cheaper.
     """
     tensor = src.get(key)
     if key.endswith(".weight"):
-        scale_key = key[: -len(".weight")] + ".weight_scale"
+        base = key[: -len(".weight")]
+        desc_key = f"{base}.comfy_quant"
+        fields = descriptor_fields(src.get(desc_key).numpy()) if desc_key in src.manifest else {}
+        if fields.get("format") == "nvfp4":
+            from slimdit.nvfp4 import _layout
+
+            layout = _layout()
+            q = torch.from_numpy(tensor.numpy())
+            block_scale = torch.from_numpy(src.get(f"{base}.weight_scale").numpy()).view(torch.float8_e4m3fn)
+            rows, cols = q.shape[0], q.shape[1] * 2
+            params = layout.Params(
+                scale=src.get(f"{base}.weight_scale_2").float(),
+                orig_dtype=torch.float32,
+                orig_shape=(rows, cols),
+                block_scale=block_scale,
+            )
+            return layout.dequantize(q, params).float().numpy()
+        scale_key = f"{base}.weight_scale"
         if scale_key in src.manifest:
             scale = src.get(scale_key).float().numpy()
             if rotated:
@@ -66,11 +83,17 @@ def compare_reference(ours: ShardSet, ref: ShardSet, tolerance: float, limit: in
     mismatched_layout = sorted(set(ours.manifest) ^ set(ref.manifest))
     worst: list[tuple[float, str]] = []
     failures = 0
+    skipped_format = 0
     for key in shared:
         if key.endswith(".comfy_quant"):
             if bytes(ours.get(key).numpy().tobytes()) != bytes(ref.get(key).numpy().tobytes()):
                 print(f"  DESCRIPTOR MISMATCH {key}")
                 failures += 1
+            continue
+        ours_desc = descriptor_fields(ours.get(key[: -len(".weight")] + ".comfy_quant").numpy()) if key.endswith(".weight") else None
+        ref_desc = descriptor_fields(ref.get(key[: -len(".weight")] + ".comfy_quant").numpy()) if key.endswith(".weight") else None
+        if (ours_desc or {}).get("format") != (ref_desc or {}).get("format"):
+            skipped_format += 1
             continue
         a, b = load_value(ours, key, rotated=True), load_value(ref, key, rotated=True)
         if a.shape != b.shape:
@@ -82,6 +105,8 @@ def compare_reference(ours: ShardSet, ref: ShardSet, tolerance: float, limit: in
         worst.append((rel, key))
     worst.sort(reverse=True)
     print(f"compared {len(shared)} tensors (curve keys excluded); {len(mismatched_layout)} keys unique to one side")
+    if skipped_format:
+        print(f"  {skipped_format} tensors skipped: different quantization format than the reference")
     if mismatched_layout:
         print(f"  one-sided keys (first 5): {mismatched_layout[:5]}")
     print(f"worst {limit} deviations from the reference:")
@@ -96,13 +121,18 @@ def compare_reference(ours: ShardSet, ref: ShardSet, tolerance: float, limit: in
 def compare_official(slim: ShardSet, official: ShardSet, layers: list[str], rank: int, grid: int) -> int:
     failures = 0
     for key in layers:
-        block, _, suffix = key.split(".", 2)
+        block = key.split(".")[1]
+        suffix = key.split(".", 2)[2]
         parts = [official.get(f"transformer_blocks.{block}.{n}").float() for n in OFFICIAL_FOR[suffix]]
         ref = (parts[0] if len(parts) == 1 else torch.cat(parts, dim=0)).numpy()
+        if suffix == "mlp.fc1.weight":
+            # The runtime's swiglu takes [up; gate]; the released checkpoint stores [gate; up].
+            half = ref.shape[0] // 2
+            ref = np.concatenate([ref[half:], ref[:half]], axis=0)
         restored = load_value(slim, key)
         rel = float(np.linalg.norm(restored - ref) / np.linalg.norm(ref))
-        print(f"  {key}: int8 error {rel * 100:.4f}%")
-        failures += rel > 0.05
+        print(f"  {key}: quant error {rel * 100:.4f}%")
+        failures += rel > 0.15
 
     emb = (
         official.get("time_embedder.linear_1.weight").float().numpy(),

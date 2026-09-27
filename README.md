@@ -56,6 +56,20 @@ The Hadamard matrix is the *regular* (4x4-seeded, Kronecker) construction from
 `comfy_kitchen.tensor.int8_utils`, normalized by `sqrt(256)` — it must match bit-for-bit, because
 the runtime un-rotates with its own copy.
 
+The NVFP4 alternative (`--quant nvfp4`, half the weight bytes at ~9.4 % weight error instead of
+~0.9 %) stores four tensors per linear:
+
+| tensor | dtype | shape | meaning |
+|---|---|---|---|
+| `<name>.weight` | uint8 | `[N, K/2]` | E2M1 pairs, high nibble first |
+| `<name>.weight_scale` | uint8 (fp8 bits) | `[N, K/16]` | E4M3 block scales, cuBLAS tiled layout |
+| `<name>.weight_scale_2` | float32 | scalar | `amax / (448 * 6)` |
+| `<name>.comfy_quant` | uint8 | `[19]` | `{"format": "nvfp4"}` |
+
+NVFP4 quantization is delegated to `comfy_kitchen` (bit-exact, and its kernels need a GPU during
+conversion) rather than reimplemented — a divergent fp4 rounding rule would silently corrupt
+weights, so `slimdit` refuses to guess when the package is missing.
+
 Curve checkpoints carry two extra flavours of tensor: a shared `adaln_t_table` `[grid, rank]`
 (one row per `t = i / (grid - 1)`, interpolated at runtime) and, per block,
 `adaln_proj.linear.weight` of shape `[96768, rank]`.
@@ -116,9 +130,10 @@ Measured on the released weights:
 ## Status
 
 - [x] INT8 ConvRot conversion of MiniMax-H3 with analytic adaln curves
-- [ ] NVFP4 variant
+- [x] NVFP4 variant (`--quant nvfp4`, ~10 GiB instead of 19.6 GiB)
+- [ ] NVFP4 render A/B against the INT8 checkpoint
 - [ ] sm89 / sm120 kernel pack (Triton INT8 + curve ops) with arch-aware routing
-- [ ] ComfyUI node: convert + inspect checkpoints from inside the graph
+- [x] ComfyUI node: convert + inspect checkpoints from inside the graph
 
 ## Notes
 

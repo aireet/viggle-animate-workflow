@@ -51,7 +51,7 @@ class SlimDiTConvert:
                 "output_name": ("STRING", {"default": "minimax_h3_ref2va_slimdit_int8_convrot.safetensors"}),
                 "curve_rank": ("INT", {"default": 8, "min": 2, "max": 32, "step": 1}),
                 "curve_grid": ("INT", {"default": 1025, "min": 65, "max": 4097, "step": 1}),
-                "quantize": (["int8_convrot", "none"], {"default": "int8_convrot"}),
+                "quantize": (["int8_convrot", "nvfp4"], {"default": "int8_convrot"}),
             },
             "optional": {
                 "source_dir": ("STRING", {"default": "", "multiline": False}),
@@ -60,9 +60,6 @@ class SlimDiTConvert:
         }
 
     def run(self, repo_id, output_name, curve_rank, curve_grid, quantize, source_dir="", verify_blocks=0):
-        if quantize != "int8_convrot":
-            raise ValueError("only int8_convrot is implemented so far")
-
         from slimdit import convert as convert_mod
 
         source = Path(source_dir).expanduser() if source_dir else Path.home() / ".cache" / "slimdit" / "official"
@@ -80,6 +77,7 @@ class SlimDiTConvert:
             rank=curve_rank,
             grid=curve_grid,
             verify_blocks=verify_blocks,
+            quant=quantize,
         )
         text = f"slimdit: wrote {out_path}\n{report.summary()}"
         print(text)

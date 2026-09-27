@@ -22,7 +22,7 @@ import torch
 from tqdm import tqdm
 
 from . import curve as curve_mod
-from . import mapping
+from . import mapping, nvfp4
 from .int8 import comfy_quant_blob, dequantize_convrot_weight, quantize_convrot_weight
 from .safetensors_io import ShardSet, Writer, numel, to_bytes
 
@@ -46,7 +46,7 @@ class Report:
 
 
 def output_manifest(
-    ops: list[mapping.Op], src: ShardSet, rank: int, grid: int, block_limit: int | None
+    ops: list[mapping.Op], src: ShardSet, rank: int, grid: int, block_limit: int | None, quant: str = "int8_convrot"
 ) -> list[tuple[str, str, tuple[int, ...]]]:
     """Ordered (name, dtype, shape) list for every tensor the writer will emit."""
     manifest: list[tuple[str, str, tuple[int, ...]]] = [("adaln_t_table", "F32", (grid, rank))]
@@ -57,9 +57,18 @@ def output_manifest(
             rows = sum(src.manifest[s][1][0] for s in op.src)
             _, cols = src.manifest[op.src[0]][1]
             base = op.out[0][: -len(".weight")]
-            manifest.append((f"{base}.weight", "I8", (rows, cols)))
-            manifest.append((f"{base}.weight_scale", "F32", (rows, 1)))
-            manifest.append((f"{base}.comfy_quant", "U8", (72,)))
+            if quant == "int8_convrot":
+                manifest.append((f"{base}.weight", "I8", (rows, cols)))
+                manifest.append((f"{base}.weight_scale", "F32", (rows, 1)))
+                manifest.append((f"{base}.comfy_quant", "U8", (72,)))
+            elif quant == "nvfp4":
+                weight_shape, scale_shape = nvfp4.quantized_shapes(rows, cols)
+                manifest.append((f"{base}.weight", "U8", weight_shape))
+                manifest.append((f"{base}.weight_scale", "U8", scale_shape))
+                manifest.append((f"{base}.weight_scale_2", "F32", ()))
+                manifest.append((f"{base}.comfy_quant", "U8", (len(nvfp4.NVFP4_DESCRIPTOR),)))
+            else:
+                raise ValueError(f"unknown quantization format {quant!r}")
         elif op.kind == "copy":
             manifest.append((op.out[0], op.dtype.upper(), src.manifest[op.src[0]][1]))
         elif op.kind == "concat":
@@ -97,6 +106,7 @@ def convert(
     verify_blocks: int = 0,
     curve_dtype: str = "f16",
     metadata: dict | None = None,
+    quant: str = "int8_convrot",
 ) -> Report:
     src = ShardSet(src_dir)
     ops = mapping.build_plan(src.manifest.keys())
@@ -104,11 +114,12 @@ def convert(
     if missing:
         raise SystemExit(f"missing source tensors: {missing[:5]} (+{max(0, len(missing) - 5)} more)")
 
-    manifest = output_manifest(ops, src, rank, grid, block_limit)
+    manifest = output_manifest(ops, src, rank, grid, block_limit, quant)
     report = Report(curve_errors=[], quant_errors=[])
 
     t0 = time.time()
     writer = Writer(out_path, manifest, metadata or {"format": "pt"})
+    completed = False
     try:
         # shared curve basis, built from the official time embedder
         table, basis, curve = curve_mod.build_curve_basis(
@@ -133,14 +144,24 @@ def convert(
                 weight = parts[0] if len(parts) == 1 else torch.cat(parts, dim=0)
                 weight = _prepare(weight, op)
                 weight_np = weight.numpy()
-                q, scale = quantize_convrot_weight(weight_np)
                 base = name[: -len(".weight")]
-                writer.append(f"{base}.weight", q.tobytes())
-                writer.append(f"{base}.weight_scale", scale.tobytes())
-                writer.append(f"{base}.comfy_quant", comfy_quant_blob().tobytes())
-                deq = dequantize_convrot_weight(q, scale)
-                report.quant_errors.append(float(np.linalg.norm(deq - weight_np) / np.linalg.norm(weight_np)))
-                del parts, weight, weight_np, q, scale, deq
+                if quant == "int8_convrot":
+                    q, scale = quantize_convrot_weight(weight_np)
+                    writer.append(f"{base}.weight", q.tobytes())
+                    writer.append(f"{base}.weight_scale", scale.tobytes())
+                    writer.append(f"{base}.comfy_quant", comfy_quant_blob().tobytes())
+                    deq = dequantize_convrot_weight(q, scale)
+                    report.quant_errors.append(float(np.linalg.norm(deq - weight_np) / np.linalg.norm(weight_np)))
+                    del q, scale, deq
+                else:
+                    q, block_scale, tensor_scale, error = nvfp4.quantize_nvfp4_with_error(weight_np)
+                    writer.append(f"{base}.weight", q.tobytes())
+                    writer.append(f"{base}.weight_scale", block_scale.tobytes())
+                    writer.append(f"{base}.weight_scale_2", np.float32(tensor_scale).tobytes())
+                    writer.append(f"{base}.comfy_quant", nvfp4.comfy_quant_blob().tobytes())
+                    report.quant_errors.append(error)
+                    del q, block_scale, tensor_scale
+                del parts, weight, weight_np
             elif op.kind == "copy":
                 writer.append(name, to_bytes(_prepare(src.get(op.src[0]), op), op.dtype.upper()))
             elif op.kind == "concat":
@@ -158,8 +179,12 @@ def convert(
                 writer.append(name, rope_inv_freq().tobytes())
             else:
                 raise ValueError(f"unhandled op kind {op.kind!r}")
+        completed = True
     finally:
-        writer.close()
+        if completed:
+            writer.close()
+        else:
+            writer.abort()
 
     if verify_blocks:
         report = _verify(src, table, basis, rank, grid, verify_blocks)
@@ -195,6 +220,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--block-limit", type=int, default=None, help="only convert the first N blocks (trials)")
     ap.add_argument("--verify-blocks", type=int, default=0, help="measure curve fit on the first N blocks")
     ap.add_argument("--curve-dtype", choices=["f16", "f32"], default="f16")
+    ap.add_argument(
+        "--quant",
+        choices=["int8_convrot", "nvfp4"],
+        default="int8_convrot",
+        help="weight format for the block linears (nvfp4 needs comfy_kitchen, i.e. a ComfyUI env)",
+    )
     args = ap.parse_args(argv)
 
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
@@ -206,6 +237,7 @@ def main(argv: list[str] | None = None) -> int:
         block_limit=args.block_limit,
         verify_blocks=args.verify_blocks,
         curve_dtype=args.curve_dtype,
+        quant=args.quant,
     )
     print(report.summary())
     return 0
