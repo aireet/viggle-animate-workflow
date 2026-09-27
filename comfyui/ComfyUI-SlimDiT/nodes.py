@@ -267,7 +267,7 @@ class SlimDiTLoader:
                     {"default": first(checkpoints, "slimdit") or (checkpoints[0] if checkpoints else "")},
                 ),
                 "lora": (["(none)"] + loras, {"default": first(loras, "viggle") or "(none)"}),
-                "vae": (vaes, {"default": first(vaes, "minimax") or first(vaes, "h3") or (vaes[0] if vaes else "")}),
+                "vae": (vaes, {"default": first(vaes, "video_vae") or first(vaes, "minimax") or (vaes[0] if vaes else "")}),
                 "steps": (["3", "4", "6"], {"default": "3"}),
                 "shift_video": ("FLOAT", {"default": 3.0, "min": 0.01, "max": 100.0, "step": 0.01}),
                 "shift_audio": ("FLOAT", {"default": 3.0, "min": 0.01, "max": 100.0, "step": 0.01}),
@@ -296,12 +296,135 @@ class SlimDiTLoader:
         return {"ui": {"text": [text]}, "result": (model, vae_out, sigmas, sampler)}
 
 
+def _node_call(cls, **inputs):
+    """Call a ComfyUI node class whether it is V1 (FUNCTION stem) or V3 (classmethod execute).
+
+    Inputs are passed by *name*: the executor does the same, and the positional order of a V1
+    method need not match its schema (``VAEDecode.decode`` is ``(vae, samples)``, not the order the
+    node shows), so names are the only safe contract.
+    """
+    if hasattr(cls, "execute") and not hasattr(cls, "FUNCTION"):
+        out = cls.execute(**inputs)
+    else:
+        out = getattr(cls(), cls.FUNCTION)(**inputs)
+    return out.result if hasattr(out, "result") else out
+
+
+class ViggleAnimateSlimDiT:
+    """The whole Viggle-Animate render behind two inputs and a Run.
+
+    Same pipeline as the vendor six-node chain, called directly: driving clip scaled to 0.4 MP,
+    frozen text conditioning, vendor conditioning build, SlimDiT weights + shift, euler sampler
+    with the 3/4/6-step schedule, VAE decode. It exists because the graph was doing nothing for
+    the person using it -- every knob here has the value the evaluated configuration uses.
+    """
+
+    CATEGORY = "slimdit"
+    FUNCTION = "run"
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("frames",)
+    DESCRIPTION = (
+        "Viggle-Animate in one node: driving video + reference still -> frames. "
+        "Defaults are the evaluated configuration (124 frames, 3 steps, shift 3/3)."
+    )
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        try:
+            import folder_paths
+
+            checkpoints = folder_paths.get_filename_list("diffusion_models")
+            loras = folder_paths.get_filename_list("loras")
+            vaes = folder_paths.get_filename_list("vae")
+            text_conds = folder_paths.get_filename_list("text_cond")
+        except Exception:  # noqa: BLE001 - outside ComfyUI
+            checkpoints, loras, vaes, text_conds = [], [], [], []
+
+        def first(items, needle):
+            return next((i for i in items if needle in i.lower()), None)
+
+        return {
+            "required": {
+                "video": ("IMAGE", {"tooltip": "Driving video frames at 24 fps (Load Video). Supplies motion, camera, background."}),
+                "reference_image": ("IMAGE", {"tooltip": "Single still of the person to place in the video. A repainted frame of the same shot works best."}),
+                "steps": (["3", "4", "6"], {"default": "3", "tooltip": "3 is what the finetune and the DMD LoRA were distilled for."}),
+                "length": ("INT", {"default": 124, "min": 5, "max": 3600, "step": 17,
+                                   "tooltip": "Frames at 24 fps, snapped to the 17k+5 grid (124 = ~5.2 s). Clamped to the driving clip's own length."}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF, "control_after_generate": True}),
+                "checkpoint": (checkpoints, {"default": first(checkpoints, "slimdit") or (checkpoints[0] if checkpoints else "")}),
+                "lora": (["(none)"] + loras, {"default": first(loras, "viggle") or "(none)"}),
+                "vae": (vaes, {"default": first(vaes, "video_vae") or first(vaes, "minimax") or (vaes[0] if vaes else "")}),
+                "text_cond": (text_conds, {"default": first(text_conds, "fixed_embed") or (text_conds[0] if text_conds else "")}),
+                "shift_video": ("FLOAT", {"default": 3.0, "min": 0.01, "max": 100.0, "step": 0.01}),
+                "shift_audio": ("FLOAT", {"default": 3.0, "min": 0.01, "max": 100.0, "step": 0.01}),
+            }
+        }
+
+    def run(self, video, reference_image, steps, length, seed, checkpoint, lora, vae, text_cond, shift_video, shift_audio):
+        import torch
+
+        import comfy.samplers
+        import nodes as comfy_nodes
+        from comfy_extras.nodes_custom_sampler import Guider_Basic, Noise_RandomNoise, SamplerCustomAdvanced
+
+        registry = comfy_nodes.NODE_CLASS_MAPPINGS  # every loaded node, core and custom
+        missing = [n for n in ("ImageScaleToTotalPixels", "ViggleAnimateConditioning", "ViggleTextCondLoader") if n not in registry]
+        if missing:
+            raise RuntimeError(f"missing nodes for Viggle-Animate: {', '.join(missing)}")
+
+        frames = int(min(int(length), video.shape[0]))
+        if frames != int(length):
+            print(f"[slimdit/viggle] length {int(length)} clamped to the clip's {frames} frames", flush=True)
+
+        model, = comfy_nodes.UNETLoader().load_unet(checkpoint, "default")
+        if lora and lora != "(none)":
+            model, = comfy_nodes.LoraLoaderModelOnly().load_lora_model_only(model, lora, 1.0)
+        vae_model, = comfy_nodes.VAELoader().load_vae(vae)
+        model = _apply_sigma_shift(model, float(shift_video), float(shift_audio))
+
+        cond_video, = _node_call(registry["ImageScaleToTotalPixels"], image=video, upscale_method="area", megapixels=0.4, resolution_steps=32)
+        text, = _node_call(registry["ViggleTextCondLoader"], text_cond=text_cond)
+        positive, latent = _node_call(
+            registry["ViggleAnimateConditioning"],
+            cond_video=cond_video,
+            ref_image=reference_image,
+            text_cond=text,
+            vae=vae_model,
+            width=0,
+            height=0,
+            length=frames,
+        )
+
+        from slimdit.sigmas import format_sigmas, h3_sigmas
+
+        values = h3_sigmas(int(steps), float(shift_video))
+        sigmas = torch.tensor(values, dtype=torch.float32)
+
+        guider = Guider_Basic(model)
+        guider.set_conds(positive)
+        sampled = _node_call(
+            SamplerCustomAdvanced,
+            noise=Noise_RandomNoise(int(seed)),
+            guider=guider,
+            sampler=comfy.samplers.sampler_object("euler"),
+            sigmas=sigmas,
+            latent_image=latent,
+        )
+        images, = _node_call(comfy_nodes.VAEDecode, samples=sampled[0], vae=vae_model)
+
+        text_out = f"{checkpoint} · lora={lora} · {int(steps)} steps {format_sigmas(values).strip()} · {frames} frames · seed {int(seed)}"
+        print(f"[slimdit/viggle] {text_out}", flush=True)
+        return {"ui": {"text": [text_out]}, "result": (images,)}
+
+
 NODE_CLASS_MAPPINGS = {
     "SlimDiTLoader": SlimDiTLoader,
+    "ViggleAnimateSlimDiT": ViggleAnimateSlimDiT,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SlimDiTLoader": "SlimDiT Loader (weights + LoRA + VAE + steps)",
+    "ViggleAnimateSlimDiT": "Viggle Animate (one node: video + still -> frames)",
 }
 
 #: Conversion/inspection helpers. Developer tools, so they stay out of the node library unless

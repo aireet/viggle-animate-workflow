@@ -105,18 +105,28 @@ from the new weights.
 
 ## ComfyUI node pack
 
-The pack (`comfyui/ComfyUI-SlimDiT/`) ships **one** node. `SlimDiT Loader` (weights + LoRA + VAE +
-steps) takes the six things a MiniMax-H3 graph otherwise needs -- `Load Diffusion Model`,
-`Load LoRA (Model Only)`, `Load VAE`, `MiniMaxH3SigmaShift`, a sampler choice and a sigma list --
-and exposes them as the dropdowns you already expect, plus the 3 / 4 / 6 step choice. It calls
-ComfyUI's own loader implementations, so the loaded model is bit-identical to wiring it by hand.
+The pack (`comfyui/ComfyUI-SlimDiT/`) ships two nodes.
 
-The shipped workflow (`comfyui/workflows/viggle-animate-slimdit-int8.json`, 12 nodes against the
-vendor graph's 17) is three stages: inputs, render, output. Only four widgets are meant to move --
-driving video, reference image, step count and seed; the helper nodes sit collapsed. Regenerate it
-with `python3 comfyui/workflows/build_workflows.py`, which folds the six nodes into the loader and
-re-points every link by source type (the validator in that directory checks link and type integrity
-against the base workflow).
+**`Viggle Animate (one node)`** is the whole render: driving video + reference still in, frames
+out. It runs the vendor chain internally -- clip scaled to 0.4 MP, frozen text conditioning,
+vendor conditioning build, SlimDiT weights plus sigma shift, euler sampler on the 3/4/6-step
+schedule, VAE decode -- by calling those nodes' own implementations, so nothing about the render
+changes. Everything else is a widget with the evaluated value: 3 steps, 124 frames, shift 3/3,
+and the SlimDiT checkpoint + DMD LoRA + video VAE.
+
+**`SlimDiT Loader`** is the same weight/step selection as separate MODEL/VAE/SIGMAS/SAMPLER
+outputs, for wiring a different graph by hand.
+
+The shipped workflow (`comfyui/workflows/viggle-animate-slimdit.json`) is therefore five nodes --
+load video, load image, generate, save, note -- and only three things are worth touching: the step
+count, the frame count and the seed (it randomises by default, so a second Run always renders).
+Regenerate with `python3 comfyui/workflows/build_workflows.py`, which takes the loaders and the
+save node from the vendor workflow and rewires them (links are looked up by slot *name*, never by
+index, and the script self-checks every endpoint).
+
+Equivalence: the same weights and seed through the one node and through the vendor 17-node graph
+agree at **39.94 dB PSNR over 124 frames**, above the 30.85 dB same-seed numeric floor this project
+measured, i.e. the collapse is representational, not behavioural.
 
 Conversion and inspection nodes (`SlimDiT Convert`, `SlimDiT Inspect`, `SlimDiT Sigmas`,
 `SlimDiT Attention Override Stats`) are developer tools and stay out of the node library unless
