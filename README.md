@@ -39,12 +39,14 @@ And this is the whole graph — weights, inputs, the node, decode and save:
 ## Credits
 
 Built following the documentation of the **Viggle Animate** team —
-[huggingface.co/Viggle/Viggle-Animate](https://huggingface.co/Viggle/Viggle-Animate).
+[huggingface.co/Viggle/Viggle-Animate](https://huggingface.co/Viggle/Viggle-Animate) — and the
+checkpoints and ComfyUI workflows published as the reference at
+[drbaph/Viggle-Animate-ComfyUI](https://huggingface.co/drbaph/Viggle-Animate-ComfyUI/tree/main).
 
-Their docs are what we followed for the method: how to quantize and prune the model, the
-conditioning order (driving footage first, the still nested on the clip's short edge), the rule
-that a reference should be a repainted frame of the same shot, and the sampling settings. Thanks
-to the Viggle Animate team.
+Their docs and that reference are what we followed for the method: how to quantize and prune the
+model, the conditioning order (driving footage first, the still nested on the clip's short edge),
+the rule that a reference should be a repainted frame of the same shot, and the sampling settings.
+Thanks to the Viggle Animate team and to the author of that reference.
 
 For the ComfyUI side we used the community node pack
 [ComfyUI-Viggle-Animate-H3](https://github.com/Saganaki22/ComfyUI-Viggle-Animate-H3), which is not
