@@ -100,21 +100,39 @@ MiniMax-H3's attention is touched, so other models in the same ComfyUI keep work
 The reference still is the trick. Match its pose, framing and lighting to the driving shot and the
 result stays on-model for the whole 5.2 seconds.
 
-## Install
+## Install and run the example
 
 ```sh
+# 1. the checkpoint (19.6 GiB: needs git-lfs for the clone, or use `hf download` instead)
+git lfs install
 git clone https://huggingface.co/xuexuexue1994/viggle-animate-workflow
+
+# 2. the node pack, and the `slimdit` package that it imports
 cp -r viggle-animate-workflow/comfyui/ComfyUI-SlimDiT ComfyUI/custom_nodes/
 cp -r viggle-animate-workflow/slimdit ComfyUI/custom_nodes/ComfyUI-SlimDiT/slimdit
 cp viggle-animate-workflow/minimax_h3_ref2va_slimdit_int8_convrot.safetensors ComfyUI/models/diffusion_models/
+
+# 3. the example inputs, into ComfyUI input folder (the workflow refers to these file names)
+cp viggle-animate-workflow/examples/dog-singer/driving-clip.mp4 \
+   viggle-animate-workflow/examples/dog-singer/reference.png ComfyUI/input/
+
+# 4. three dependencies we do not ship, from the upstream projects
+mkdir -p ComfyUI/models/loras ComfyUI/models/text_cond ComfyUI/models/vae
+curl -L -o ComfyUI/models/loras/viggle_animate_dmd_lora.safetensors \
+  https://huggingface.co/drbaph/Viggle-Animate-ComfyUI/resolve/main/loras/viggle_animate_dmd_lora.safetensors
+curl -L -o ComfyUI/models/text_cond/fixed_embed_fwd_anyframe.safetensors \
+  https://huggingface.co/drbaph/Viggle-Animate-ComfyUI/resolve/main/text_cond/fixed_embed_fwd_anyframe.safetensors
+curl -L -o ComfyUI/models/vae/minimax_h3_video_vae_fp16.safetensors \
+  https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors
 ```
+
+Then load `comfyui/workflows/viggle-animate-workflow.json` in ComfyUI and press Run. The workflow
+ships with the example seed, so the first run reproduces `examples/dog-singer/result.mp4` (6 steps,
+124 frames); after that the seed randomises.
 
 Two things that tripped us up: the node pack needs the `slimdit` folder copied *inside*
 `custom_nodes/ComfyUI-SlimDiT/`, and if you use `extra_model_paths.yaml` you have to list the model
-folder there or ComfyUI will not see the checkpoint.
-
-You will also need the MiniMax-H3 video VAE, the Viggle-Animate DMD LoRA and the frozen text
-conditioning file — all from the upstream projects linked above.
+folders there or ComfyUI will not see the checkpoint.
 
 ## Licence
 
