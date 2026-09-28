@@ -24,7 +24,7 @@ Viggle-Animate in one ComfyUI node, on a quantized checkpoint, with automatic at
 
 Give it a driving clip and one still, and the character in the still does the clip.
 
-![The workflow in ComfyUI](https://huggingface.co/xuexuexue1994/viggle-animate-workflow/resolve/main/docs/workflow.png)
+![The workflow in ComfyUI](docs/comfyui.jpg)
 
 ## Credits
 
