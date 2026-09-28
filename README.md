@@ -2,7 +2,10 @@
 license: other
 license_name: minimax-h3-community-license-agreement
 license_link: https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE
-base_model: MiniMaxAI/MiniMax-H3
+base_model:
+  - Viggle/Viggle-Animate
+  - MiniMaxAI/MiniMax-H3
+base_model_relation: quantized
 library_name: comfyui
 tags:
   - comfyui
@@ -41,7 +44,9 @@ not an official Viggle release, and our thanks go to its author as well. Our nod
 pipeline and keeps its behaviour.
 
 The base model is **[MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3)**, under the MiniMax H3
-Community License. The node runs on [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with
+Community License. The lineage is: this checkpoint is the **quantized** [Viggle-Animate](https://huggingface.co/Viggle/Viggle-Animate),
+which is itself a finetune of MiniMax-H3. The node runs on
+[ComfyUI](https://github.com/comfyanonymous/ComfyUI) with
 [Video Helper Suite](https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite) and the `comfy_kitchen`
 Sol-Attn kernels.
 
