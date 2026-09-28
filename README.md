@@ -100,6 +100,33 @@ MiniMax-H3's attention is touched, so other models in the same ComfyUI keep work
 The reference still is the trick. Match its pose, framing and lighting to the driving shot and the
 result stays on-model for the whole 5.2 seconds.
 
+## Required custom nodes
+
+Our node calls the vendor conditioning nodes internally and the workflow loads and saves video, so
+ComfyUI needs three custom node packs besides the one in this repository:
+
+| Pack | Why | Install |
+|---|---|---|
+| **ComfyUI-SlimDiT** | the `viggle-animate-h3` node and the attention router | copy it from this repo (step 2 below) |
+| **[ComfyUI-Viggle-Animate-H3](https://github.com/Saganaki22/ComfyUI-Viggle-Animate-H3)** | the Viggle-Animate conditioning and the frozen-text loader that our node calls | `git clone https://github.com/Saganaki22/ComfyUI-Viggle-Animate-H3 ComfyUI/custom_nodes/` |
+| **[ComfyUI-VideoHelperSuite](https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite)** | `Load Video` and `Video Combine` in the workflow | ComfyUI-Manager, or `git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite ComfyUI/custom_nodes/` |
+
+`comfy_kitchen` (the Sol-Attn kernels) ships with current ComfyUI; if it is missing the router falls
+back to dense attention by itself.
+
+## Where the files go (ComfyUI conventions)
+
+| File | Folder | Note |
+|---|---|---|
+| `minimax_h3_ref2va_slimdit_int8_convrot.safetensors` | `ComfyUI/models/diffusion_models/` | core folder; loaded by `Load Diffusion Model` |
+| `viggle_animate_dmd_lora.safetensors` | `ComfyUI/models/loras/` | core folder; loaded by `Load LoRA` |
+| `minimax_h3_video_vae_fp16.safetensors` | `ComfyUI/models/vae/` | core folder; loaded by `Load VAE` |
+| `fixed_embed_fwd_anyframe.safetensors` | `ComfyUI/models/text_cond/` | **folder defined by the Viggle-Animate pack**, not a core one; loaded by its text-conditioning node |
+| the example's `driving-clip.mp4` and `reference.png` | `ComfyUI/input/` | core input folder; the workflow refers to those file names |
+
+If you keep models outside `ComfyUI/models`, list the folders in `extra_model_paths.yaml` (see
+ComfyUI's own docs) or the loaders will show empty dropdowns.
+
 ## Install and run the example
 
 ```sh
