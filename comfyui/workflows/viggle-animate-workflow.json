@@ -1,0 +1,927 @@
+{
+ "id": "7a4c2e5a-ef6c-48c0-9ace-558a27d0b3f7",
+ "revision": 0,
+ "last_node_id": 9,
+ "last_link_id": 11,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "UNETLoader",
+   "pos": [
+    4054.235049467005,
+    1808.116022409796
+   ],
+   "size": [
+    470,
+    90
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "UNet\u540d\u79f0",
+     "name": "unet_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "unet_name"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "\u6570\u636e\u7c7b\u578b",
+     "name": "weight_dtype",
+     "type": "COMBO",
+     "widget": {
+      "name": "weight_dtype"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "\u6a21\u578b",
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      1
+     ]
+    }
+   ],
+   "title": "Load Diffusion Model",
+   "properties": {
+    "Node name for S&R": "UNETLoader",
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0"
+   },
+   "widgets_values": [
+    "minimax_h3_ref2va_slimdit_int8_convrot.safetensors",
+    "default"
+   ],
+   "widgets_values_named": {
+    "unet_name": "minimax_h3_ref2va_slimdit_int8_convrot.safetensors",
+    "weight_dtype": "default"
+   },
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 2,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    4054.235049467005,
+    1988.1160224097953
+   ],
+   "size": [
+    470,
+    90
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "\u6a21\u578b",
+     "name": "model",
+     "type": "MODEL",
+     "link": 1
+    },
+    {
+     "localized_name": "LoRA\u540d\u79f0",
+     "name": "lora_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "lora_name"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "\u6a21\u578b\u5f3a\u5ea6",
+     "name": "strength_model",
+     "type": "FLOAT",
+     "widget": {
+      "name": "strength_model"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "\u6a21\u578b",
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      2
+     ]
+    }
+   ],
+   "title": "Load LoRA",
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly",
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0"
+   },
+   "widgets_values": [
+    "viggle_animate_dmd_lora.safetensors",
+    1
+   ],
+   "widgets_values_named": {
+    "lora_name": "viggle_animate_dmd_lora.safetensors",
+    "strength_model": 1
+   },
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 3,
+   "type": "VAELoader",
+   "pos": [
+    4054.235049467005,
+    2188.116022409796
+   ],
+   "size": [
+    310,
+    70
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "vae\u540d\u79f0",
+     "name": "vae_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "vae_name"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "VAE",
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      3,
+      8
+     ]
+    }
+   ],
+   "title": "Load VAE",
+   "properties": {
+    "Node name for S&R": "VAELoader",
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0"
+   },
+   "widgets_values": [
+    "minimax_h3_video_vae_fp16.safetensors"
+   ],
+   "widgets_values_named": {
+    "vae_name": "minimax_h3_video_vae_fp16.safetensors"
+   },
+   "color": "#322",
+   "bgcolor": "#533"
+  },
+  {
+   "id": 9,
+   "type": "Note",
+   "pos": [
+    5154.285749368489,
+    2527.5586521191817
+   ],
+   "size": [
+    620,
+    340
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "\u8bf4\u660e",
+   "properties": {},
+   "widgets_values": [
+    "viggle-animate-h3 - one node that turns a driving clip plus one still into a video latent.\n\nFeed it:\n  video            frames of the driving clip (Load Video -> IMAGE), 24 fps\n  audio            the same clip audio; it also goes straight to the save node\n  reference_image  ONE still of the person or character to place into the clip\n                   (a repainted frame from the same shot works best)\n  model / vae      stock ComfyUI loaders: Load Diffusion Model -> Load LoRA, Load VAE\n\nInside it builds the Viggle-Animate conditioning and runs the sampler, then hands back the video\nlatent: decode with MiniMax-H3 VAE Decode, save with VHS_VideoCombine.\n\nDefaults are the evaluated configuration: 6 steps, 124 frames, flow shift 3/3.\nAttention is routed automatically per call - sol_attn while the three contiguous q/k/v copies fit,\ndense beyond that - see the project page for the measurements."
+   ],
+   "widgets_values_named": {
+    "text": "viggle-animate-h3:\u6743\u91cd\u3001LoRA\u3001VAE \u5168\u90e8\u7528 ComfyUI \u81ea\u5e26\u7684\u52a0\u8f7d\u5668\u8282\u70b9,\u8fde\u7ebf\u9001\u8fdb\u672c\u8282\u70b9\u3002\n  1. \u5de6\u8fb9\u653e\u9a71\u52a8\u89c6\u9891(\u753b\u9762\u548c\u58f0\u97f3)\u548c\u53c2\u8003\u56fe(\u6700\u597d\u662f\u540c\u4e00\u955c\u5934\u91cc\u6539\u7ed8\u7684\u4e00\u5e27)\n  2. \u70b9 Run\n  3. \u53f3\u8fb9 VHS_VideoCombine \u51fa mp4(\u5e26\u9a71\u52a8\u89c6\u9891\u539f\u58f0)\n\n\u8fde\u7ebf:Load Diffusion Model -> Load LoRA -> \u8282\u70b9 model;Load VAE -> \u8282\u70b9 vae \u548c VAE Decode;\n\u9a71\u52a8\u89c6\u9891 IMAGE/audio -> \u8282\u70b9 video/audio;\u53c2\u8003\u56fe -> reference_image;\n\u8282\u70b9 latent -> VAE Decode -> \u4fdd\u5b58\u8282\u70b9;\u8282\u70b9 audio \u76f4\u901a\u4fdd\u5b58\u8282\u70b9\u3002\n\u8282\u70b9\u91cc\u53ea\u7559 slimdit \u81ea\u5df1\u7684\u8bbe\u7f6e:\u6b65\u6570 3/4/6\u3001\u5e27\u6570\u3001seed\u3001\u6587\u672c\u6761\u4ef6\u3001shift\u3002"
+   },
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 4,
+   "type": "VHS_LoadVideo",
+   "pos": [
+    4614.235049467009,
+    1808.116022409796
+   ],
+   "size": [
+    380,
+    526.4376731301938
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "meta_batch",
+     "name": "meta_batch",
+     "shape": 7,
+     "type": "VHS_BatchManager",
+     "link": null
+    },
+    {
+     "localized_name": "vae",
+     "name": "vae",
+     "shape": 7,
+     "type": "VAE",
+     "link": null
+    },
+    {
+     "localized_name": "video",
+     "name": "video",
+     "type": "COMBO",
+     "widget": {
+      "name": "video"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "force_rate",
+     "name": "force_rate",
+     "type": "FLOAT",
+     "widget": {
+      "name": "force_rate"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "custom_width",
+     "name": "custom_width",
+     "type": "INT",
+     "widget": {
+      "name": "custom_width"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "custom_height",
+     "name": "custom_height",
+     "type": "INT",
+     "widget": {
+      "name": "custom_height"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "frame_load_cap",
+     "name": "frame_load_cap",
+     "type": "INT",
+     "widget": {
+      "name": "frame_load_cap"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "skip_first_frames",
+     "name": "skip_first_frames",
+     "type": "INT",
+     "widget": {
+      "name": "skip_first_frames"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "select_every_nth",
+     "name": "select_every_nth",
+     "type": "INT",
+     "widget": {
+      "name": "select_every_nth"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "format",
+     "name": "format",
+     "shape": 7,
+     "type": "COMBO",
+     "widget": {
+      "name": "format"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "\u56fe\u50cf",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      4
+     ]
+    },
+    {
+     "localized_name": "frame_count",
+     "name": "frame_count",
+     "type": "INT",
+     "links": []
+    },
+    {
+     "localized_name": "audio",
+     "name": "audio",
+     "type": "AUDIO",
+     "links": [
+      6,
+      11
+     ]
+    },
+    {
+     "localized_name": "video_info",
+     "name": "video_info",
+     "type": "VHS_VIDEOINFO",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VHS_LoadVideo",
+    "cnr_id": "comfyui-videohelpersuite",
+    "ver": "4d907bee61e92c2e65af3bd6383a4e4d356126d1"
+   },
+   "widgets_values": {
+    "video": "mixkit-51741-video-51741-hd-ready.mp4",
+    "force_rate": 24,
+    "custom_width": 0,
+    "custom_height": 0,
+    "frame_load_cap": 124,
+    "skip_first_frames": 0,
+    "select_every_nth": 1,
+    "format": "AnimateDiff",
+    "videopreview": {
+     "hidden": false,
+     "paused": false,
+     "params": {
+      "filename": "6005326_Young_Woman_1280x720.mp4",
+      "type": "input",
+      "format": "video/mp4",
+      "force_rate": 24,
+      "frame_load_cap": 124,
+      "skip_first_frames": 0,
+      "select_every_nth": 1
+     }
+    }
+   },
+   "widgets_values_named": {
+    "video": "6005326_Young_Woman_1280x720.mp4",
+    "force_rate": 24,
+    "custom_width": 0,
+    "custom_height": 0,
+    "frame_load_cap": 124,
+    "skip_first_frames": 0,
+    "select_every_nth": 1,
+    "format": "AnimateDiff",
+    "choose video to upload": null,
+    "videopreview": {
+     "hidden": false,
+     "paused": false,
+     "params": {
+      "filename": "6005326_Young_Woman_1280x720.mp4",
+      "type": "input",
+      "format": "video/mp4",
+      "force_rate": 24,
+      "frame_load_cap": 124,
+      "skip_first_frames": 0,
+      "select_every_nth": 1
+     }
+    }
+   },
+   "color": "#323",
+   "bgcolor": "#535"
+  },
+  {
+   "id": 7,
+   "type": "VAEDecode",
+   "pos": [
+    5590.235507614374,
+    1836.7360651716435
+   ],
+   "size": [
+    240,
+    80
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "Latent",
+     "name": "samples",
+     "type": "LATENT",
+     "link": 7
+    },
+    {
+     "localized_name": "vae",
+     "name": "vae",
+     "type": "VAE",
+     "link": 8
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "\u56fe\u50cf",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      9
+     ]
+    }
+   ],
+   "title": "MiniMax-H3 VAE Decode",
+   "properties": {
+    "Node name for S&R": "VAEDecode",
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0"
+   },
+   "color": "#322",
+   "bgcolor": "#533"
+  },
+  {
+   "id": 6,
+   "type": "ViggleAnimateH3",
+   "pos": [
+    5115.725991000069,
+    1812.0399948815266
+   ],
+   "size": [
+    400,
+    460
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "model",
+     "name": "model",
+     "type": "MODEL",
+     "link": 2
+    },
+    {
+     "localized_name": "vae",
+     "name": "vae",
+     "type": "VAE",
+     "link": 3
+    },
+    {
+     "localized_name": "video",
+     "name": "video",
+     "type": "IMAGE",
+     "link": 4
+    },
+    {
+     "localized_name": "reference_image",
+     "name": "reference_image",
+     "type": "IMAGE",
+     "link": 5
+    },
+    {
+     "localized_name": "audio",
+     "name": "audio",
+     "type": "AUDIO",
+     "link": 6
+    },
+    {
+     "localized_name": "steps",
+     "name": "steps",
+     "type": "COMBO",
+     "widget": {
+      "name": "steps"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "length",
+     "name": "length",
+     "type": "INT",
+     "widget": {
+      "name": "length"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "seed",
+     "name": "seed",
+     "type": "INT",
+     "widget": {
+      "name": "seed"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "text_cond",
+     "name": "text_cond",
+     "type": "COMBO",
+     "widget": {
+      "name": "text_cond"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "shift_video",
+     "name": "shift_video",
+     "type": "FLOAT",
+     "widget": {
+      "name": "shift_video"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "shift_audio",
+     "name": "shift_audio",
+     "type": "FLOAT",
+     "widget": {
+      "name": "shift_audio"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "latent",
+     "name": "latent",
+     "type": "LATENT",
+     "slot_index": 0,
+     "links": [
+      7
+     ]
+    },
+    {
+     "localized_name": "audio",
+     "name": "audio",
+     "type": "AUDIO",
+     "slot_index": 1,
+     "links": []
+    }
+   ],
+   "title": "viggle-animate-h3",
+   "properties": {
+    "Node name for S&R": "ViggleAnimateH3"
+   },
+   "widgets_values": [
+    "6",
+    124,
+    111633406113497,
+    "randomize",
+    "fixed_embed_fwd_anyframe.safetensors",
+    3,
+    3
+   ],
+   "widgets_values_named": {
+    "steps": "6",
+    "length": 124,
+    "seed": 111633406113497,
+    "control_after_generate": "randomize",
+    "text_cond": "fixed_embed_fwd_anyframe.safetensors",
+    "shift_video": 3,
+    "shift_audio": 3
+   },
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 5,
+   "type": "LoadImage",
+   "pos": [
+    4616.168703771673,
+    2449.260266637183
+   ],
+   "size": [
+    380,
+    700
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "\u56fe\u50cf",
+     "name": "image",
+     "type": "COMBO",
+     "widget": {
+      "name": "image"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "\u9009\u62e9\u6587\u4ef6\u4e0a\u4f20",
+     "name": "upload",
+     "type": "IMAGEUPLOAD",
+     "widget": {
+      "name": "upload"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "\u56fe\u50cf",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      5
+     ]
+    },
+    {
+     "localized_name": "\u906e\u7f69",
+     "name": "MASK",
+     "type": "MASK",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage",
+    "cnr_id": "comfy-core",
+    "ver": "0.34.0"
+   },
+   "widgets_values": [
+    "exec-70c1cab4-747e-4533-9bdc-d92de52afbdc.png",
+    "image"
+   ],
+   "widgets_values_named": {
+    "image": "Codex \u56fe\u50cf 2026\u5e749\u670828\u65e5 10_17_30.png",
+    "upload": "image"
+   },
+   "color": "#323",
+   "bgcolor": "#535"
+  },
+  {
+   "id": 8,
+   "type": "VHS_VideoCombine",
+   "pos": [
+    5866.804737043396,
+    2079.7675291173714
+   ],
+   "size": [
+    430,
+    334
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "link": 9
+    },
+    {
+     "localized_name": "audio",
+     "name": "audio",
+     "shape": 7,
+     "type": "AUDIO",
+     "link": 11
+    },
+    {
+     "localized_name": "meta_batch",
+     "name": "meta_batch",
+     "shape": 7,
+     "type": "VHS_BatchManager",
+     "link": null
+    },
+    {
+     "localized_name": "vae",
+     "name": "vae",
+     "shape": 7,
+     "type": "VAE",
+     "link": null
+    },
+    {
+     "localized_name": "frame_rate",
+     "name": "frame_rate",
+     "type": "FLOAT",
+     "widget": {
+      "name": "frame_rate"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "loop_count",
+     "name": "loop_count",
+     "type": "INT",
+     "widget": {
+      "name": "loop_count"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "filename_prefix",
+     "name": "filename_prefix",
+     "type": "STRING",
+     "widget": {
+      "name": "filename_prefix"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "format",
+     "name": "format",
+     "type": "COMBO",
+     "widget": {
+      "name": "format"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "pingpong",
+     "name": "pingpong",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "pingpong"
+     },
+     "link": null
+    },
+    {
+     "localized_name": "save_output",
+     "name": "save_output",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "save_output"
+     },
+     "link": null
+    },
+    {
+     "name": "pix_fmt",
+     "type": [
+      "yuv420p",
+      "yuv420p10le"
+     ],
+     "widget": {
+      "name": "pix_fmt"
+     },
+     "link": null
+    },
+    {
+     "name": "crf",
+     "type": "INT",
+     "widget": {
+      "name": "crf"
+     },
+     "link": null
+    },
+    {
+     "name": "save_metadata",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "save_metadata"
+     },
+     "link": null
+    },
+    {
+     "name": "trim_to_audio",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "trim_to_audio"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "Filenames",
+     "name": "Filenames",
+     "type": "VHS_FILENAMES",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VHS_VideoCombine",
+    "cnr_id": "comfyui-videohelpersuite",
+    "ver": "4d907bee61e92c2e65af3bd6383a4e4d356126d1"
+   },
+   "widgets_values": {
+    "frame_rate": 24,
+    "loop_count": 0,
+    "filename_prefix": "viggle/Viggle-Animate",
+    "format": "video/h264-mp4",
+    "pix_fmt": "yuv420p",
+    "crf": 18,
+    "save_metadata": true,
+    "trim_to_audio": false,
+    "pingpong": false,
+    "save_output": true,
+    "videopreview": ""
+   },
+   "widgets_values_named": {
+    "frame_rate": 24,
+    "loop_count": 0,
+    "filename_prefix": "viggle/Viggle-Animate",
+    "format": "video/h264-mp4",
+    "pix_fmt": "yuv420p",
+    "crf": 18,
+    "save_metadata": true,
+    "trim_to_audio": false,
+    "pingpong": false,
+    "save_output": true,
+    "videopreview": ""
+   },
+   "color": "#222",
+   "bgcolor": "#000"
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   2,
+   0,
+   "MODEL"
+  ],
+  [
+   2,
+   2,
+   0,
+   6,
+   0,
+   "MODEL"
+  ],
+  [
+   3,
+   3,
+   0,
+   6,
+   1,
+   "VAE"
+  ],
+  [
+   4,
+   4,
+   0,
+   6,
+   2,
+   "IMAGE"
+  ],
+  [
+   5,
+   5,
+   0,
+   6,
+   3,
+   "IMAGE"
+  ],
+  [
+   6,
+   4,
+   2,
+   6,
+   4,
+   "AUDIO"
+  ],
+  [
+   7,
+   6,
+   0,
+   7,
+   0,
+   "LATENT"
+  ],
+  [
+   8,
+   3,
+   0,
+   7,
+   1,
+   "VAE"
+  ],
+  [
+   9,
+   7,
+   0,
+   8,
+   0,
+   "IMAGE"
+  ],
+  [
+   11,
+   4,
+   2,
+   8,
+   1,
+   "AUDIO"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.8,
+   "offset": [
+    500,
+    60
+   ]
+  }
+ },
+ "version": 0.4
+}
