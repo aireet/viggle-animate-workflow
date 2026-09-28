@@ -38,29 +38,25 @@ And this is the whole graph — weights, inputs, the node, decode and save:
 
 ## Credits
 
-This project exists because of **Viggle-Animate** — the finetune released by the Viggle team:
+Built following the documentation of the **Viggle Animate** team —
 [huggingface.co/Viggle/Viggle-Animate](https://huggingface.co/Viggle/Viggle-Animate).
 
-Their guidance on **how to quantize and prune the model** is what our INT8 checkpoint is built on.
-The same goes for the pipeline: the conditioning order (driving footage first, the still nested on
-the clip's short edge), the rule that a reference should be a repainted frame of the same shot, and
-the recommended sampling settings are all from Viggle-Animate. **We did not invent any of it.** We
-followed it, converted the weights, and packaged it so it is easy to run — and we are grateful to
-the Viggle-Animate authors for sharing it.
+Their docs are what we followed for the method: how to quantize and prune the model, the
+conditioning order (driving footage first, the still nested on the clip's short edge), the rule
+that a reference should be a repainted frame of the same shot, and the sampling settings. Thanks
+to the Viggle Animate team.
 
-For the ComfyUI side we built on the community node pack
-[ComfyUI-Viggle-Animate-H3](https://github.com/Saganaki22/ComfyUI-Viggle-Animate-H3) — that pack is
-not an official Viggle release, and our thanks go to its author as well. Our node wraps the same
-pipeline and keeps its behaviour.
+For the ComfyUI side we used the community node pack
+[ComfyUI-Viggle-Animate-H3](https://github.com/Saganaki22/ComfyUI-Viggle-Animate-H3), which is not
+an official Viggle release — thanks to its author too.
 
-The base model is **[MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3)**, under the MiniMax H3
-Community License. The lineage is: this checkpoint is the **quantized** [Viggle-Animate](https://huggingface.co/Viggle/Viggle-Animate),
-which is itself a finetune of MiniMax-H3. The node runs on
-[ComfyUI](https://github.com/comfyanonymous/ComfyUI) with
+The base model is [MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) (MiniMax H3 Community
+License); this checkpoint is the quantized Viggle-Animate, which is itself a finetune of MiniMax-H3.
+It runs on [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with
 [Video Helper Suite](https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite) and the `comfy_kitchen`
 Sol-Attn kernels.
 
-What is ours: the conversion code in `slimdit/`, the attention router, the one-node wrapper, and the
+What is ours: the conversion code in `slimdit/`, the attention router, the one-node wrapper and the
 packaging in this repository.
 
 ## What is in the repository
