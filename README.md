@@ -21,10 +21,20 @@ pipeline_tag: image-to-video
 # viggle-animate-workflow
 
 Viggle-Animate in one ComfyUI node, on a quantized checkpoint, with automatic attention routing.
-
 Give it a driving clip and one still, and the character in the still does the clip.
 
-![The workflow in ComfyUI](docs/comfyui.jpg)
+## See it first
+
+| input: driving clip | input: reference still | output: the render |
+|---|---|---|
+| <img src="examples/dog-singer/driving-frame.png" width="290"> | <img src="examples/dog-singer/reference.png" width="290"> | <img src="examples/dog-singer/result-preview.gif" width="290"> |
+
+The full files are in [`examples/dog-singer/`](examples/dog-singer): the driving clip, the still and
+the result as an mp4. Settings: 6 steps, 124 frames, flow shift 3/3, seed 833969396491604.
+
+And this is the whole graph — weights, inputs, the node, decode and save:
+
+<img src="docs/comfyui.jpg" width="1100">
 
 ## Credits
 
@@ -59,9 +69,9 @@ packaging in this repository.
 |---|---|
 | `minimax_h3_ref2va_slimdit_int8_convrot.safetensors` | the quantized checkpoint, 19.6 GiB; loads with the normal `Load Diffusion Model` node |
 | `comfyui/ComfyUI-SlimDiT/` | the ComfyUI node pack: `viggle-animate-h3` and the attention router |
-| `comfyui/workflows/viggle-animate-workflow.json` | the workflow, with the example already loaded |
+| `comfyui/workflows/viggle-animate-workflow.json` | the workflow from the screenshot, example already wired in |
 | `slimdit/`, `tools/`, `tests/` | the conversion code, the tools we used to check it, and the tests |
-| `examples/dog-singer/` | the driving clip, the still and the render from the example below |
+| `examples/dog-singer/` | the driving clip, the still and the render shown above |
 
 ## Attention routing
 
@@ -78,14 +88,7 @@ so the node picks one for every call instead of hard-coding a single choice:
 Short clips get the fast path and long clips get the safe one, without any switches. Only
 MiniMax-H3's attention is touched, so other models in the same ComfyUI keep working normally.
 
-## Example — the dog singer
-
-| input: driving clip | input: reference still | output |
-|---|---|---|
-| ![driving clip](examples/dog-singer/driving-frame.png) | ![reference still](examples/dog-singer/reference.png) | ![result](examples/dog-singer/result-preview.gif) |
-
-The full files live in [`examples/dog-singer/`](examples/dog-singer) — the driving clip, the
-reference still, and the result as an mp4.
+## The example in detail
 
 | | |
 |---|---|
