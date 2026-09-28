@@ -20,7 +20,7 @@ pipeline_tag: image-to-video
 
 # viggle-animate-workflow
 
-Viggle-Animate in one ComfyUI node, on a quantized checkpoint, with automatic attention routing.
+**[Viggle-Animate](https://huggingface.co/Viggle/Viggle-Animate)** in one ComfyUI node, on a quantized checkpoint, with automatic attention routing.
 Give it a driving clip and one still, and the character in the still does the clip.
 
 ## See it first
