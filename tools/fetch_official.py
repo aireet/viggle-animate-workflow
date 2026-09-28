@@ -4,7 +4,7 @@ Runs anywhere a plain ``python3`` exists (e.g. the build host). One streaming co
 shard, several shards in flight at once; each shard resumes from the contiguous prefix already
 on disk and is verified against its safetensors header before being declared complete.
 
-    python3 tools/fetch_official.py --out <data-dir>/models/viggle-official --workers 6
+    python3 tools/fetch_official.py --out <models>/viggle-official --workers 6
 """
 
 from __future__ import annotations

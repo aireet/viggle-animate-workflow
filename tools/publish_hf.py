@@ -2,7 +2,7 @@
 
     HF_TOKEN=... python tools/publish_hf.py --repo-id <user>/slimdit --card
     HF_TOKEN=... python tools/publish_hf.py --repo-id <user>/MiniMax-H3-SlimDiT \\
-        --checkpoints <data-dir>/models/viggle-slimdit/*.safetensors
+        --checkpoints /path/to/checkpoints/*.safetensors
 
 The card is generated from the values measured in this repository, so it stays honest: update
 the numbers here if a future run changes them.

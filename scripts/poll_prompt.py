@@ -1,12 +1,13 @@
 """Poll a ComfyUI prompt until it finishes, then print status, timing and output files."""
 
 import json
+import os
 import sys
 import time
 import urllib.request
 
 PID = sys.argv[1]
-BASE = "http://127.0.0.1:8188"
+BASE = os.environ.get("COMFY_URL", "http://127.0.0.1:8188")  # 8188 is ComfyUI's default port
 
 
 def get(path):
