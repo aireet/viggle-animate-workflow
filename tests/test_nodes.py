@@ -23,7 +23,10 @@ def load_nodes(monkeypatch, *, dev: bool):
 
 
 def test_node_library_ships_two_nodes(monkeypatch):
-    assert set(load_nodes(monkeypatch, dev=False).NODE_CLASS_MAPPINGS) == {"SlimDiTLoader", "ViggleAnimateH3"}
+    library = set(load_nodes(monkeypatch, dev=False).NODE_CLASS_MAPPINGS)
+    # the two nodes this pack is about; the vendored Viggle-Animate pair only appears inside ComfyUI
+    assert {"SlimDiTLoader", "ViggleAnimateH3"} <= library
+    assert library <= {"SlimDiTLoader", "ViggleAnimateH3", "ViggleTextCondLoader", "ViggleAnimateConditioning"}
 
 
 def test_dev_nodes_need_the_env_var(monkeypatch):

@@ -412,6 +412,21 @@ class ViggleAnimateH3:
         return {"ui": {"text": [text_out]}, "result": (sampled[0], audio)}
 
 
+def _register_vendored_viggle_nodes() -> dict:
+    """The two Viggle-Animate nodes this pack calls, from the vendored copy, when the pack is absent.
+
+    Vendored unchanged under Apache-2.0; see ``_vendor_viggle_animate_h3.py`` and ``licenses/`` for
+    the source and the notice.
+    """
+    try:
+        from ._vendor_viggle_animate_h3 import NODE_CLASS_MAPPINGS as vendored_mappings
+    except Exception as exc:  # noqa: BLE001 - outside ComfyUI, or running from a bare file
+        print(f"[slimdit] vendored Viggle-Animate nodes unavailable: {type(exc).__name__}: {exc}", flush=True)
+        return {}
+    wanted = ("ViggleTextCondLoader", "ViggleAnimateConditioning")
+    return {k: vendored_mappings[k] for k in wanted if k in vendored_mappings}
+
+
 NODE_CLASS_MAPPINGS = {
     "SlimDiTLoader": SlimDiTLoader,
     "ViggleAnimateH3": ViggleAnimateH3,
@@ -444,3 +459,8 @@ if os.environ.get("SLIMDIT_DEV_NODES", "0") not in ("", "0", "false", "False"):
 
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
+
+
+for _key, _cls in _register_vendored_viggle_nodes().items():
+    NODE_CLASS_MAPPINGS.setdefault(_key, _cls)
+    NODE_DISPLAY_NAME_MAPPINGS.setdefault(_key, _cls.__name__)

@@ -103,13 +103,13 @@ result stays on-model for the whole 5.2 seconds.
 
 ## Required custom nodes
 
-Our node calls the vendor conditioning nodes internally and the workflow loads and saves video, so
-ComfyUI needs three custom node packs besides the one in this repository:
+The workflow loads and saves video, so ComfyUI needs one more pack besides the one in this
+repository. The Viggle-Animate nodes our node calls are vendored here, so that pack is optional:
 
 | Pack | Why | Install |
 |---|---|---|
 | **ComfyUI-SlimDiT** | the `viggle-animate-h3` node and the attention router | copy it from this repo (step 2 below) |
-| **ComfyUI-Viggle-Animate-H3** (Saganaki22) | the Viggle-Animate conditioning and the frozen-text loader that our node calls | `comfy node install comfyui-viggle-animate-h3`, or install it from the [Registry](https://registry.comfy.org/nodes/comfyui-viggle-animate-h3) / ComfyUI-Manager (its GitHub repository is no longer public) |
+| *ComfyUI-Viggle-Animate-H3 (optional)* | the Viggle-Animate conditioning and the frozen-text loader | **not needed:** this repo ships those two nodes, vendored unchanged with thanks (Saganaki22, Apache-2.0 - see `licenses/`). Install the original from the [Registry](https://registry.comfy.org/nodes/comfyui-viggle-animate-h3) only if you want its other nodes |
 | **[ComfyUI-VideoHelperSuite](https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite)** | `Load Video` and `Video Combine` in the workflow | ComfyUI-Manager, or `git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite ComfyUI/custom_nodes/` |
 
 `comfy_kitchen` (the Sol-Attn kernels) ships with current ComfyUI; if it is missing the router falls
