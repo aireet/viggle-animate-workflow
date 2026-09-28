@@ -50,9 +50,10 @@ model, the conditioning order (driving footage first, the still nested on the cl
 the rule that a reference should be a repainted frame of the same shot, and the sampling settings.
 Thanks to the Viggle Animate team and to the author of that reference.
 
-For the ComfyUI side we used the community node pack
-[ComfyUI-Viggle-Animate-H3](https://github.com/Saganaki22/ComfyUI-Viggle-Animate-H3), which is not
-an official Viggle release — thanks to its author too.
+For the ComfyUI side we used the community node pack **ComfyUI-Viggle-Animate-H3** by *Saganaki22*
+(published in the [ComfyUI Registry](https://registry.comfy.org/nodes/comfyui-viggle-animate-h3); its
+GitHub repository is no longer public), which is not an official Viggle release — thanks to its
+author too.
 
 The base model is [MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) (MiniMax H3 Community
 License); this checkpoint is the quantized Viggle-Animate, which is itself a finetune of MiniMax-H3.
@@ -108,7 +109,7 @@ ComfyUI needs three custom node packs besides the one in this repository:
 | Pack | Why | Install |
 |---|---|---|
 | **ComfyUI-SlimDiT** | the `viggle-animate-h3` node and the attention router | copy it from this repo (step 2 below) |
-| **[ComfyUI-Viggle-Animate-H3](https://github.com/Saganaki22/ComfyUI-Viggle-Animate-H3)** | the Viggle-Animate conditioning and the frozen-text loader that our node calls | `git clone https://github.com/Saganaki22/ComfyUI-Viggle-Animate-H3 ComfyUI/custom_nodes/` |
+| **ComfyUI-Viggle-Animate-H3** (Saganaki22) | the Viggle-Animate conditioning and the frozen-text loader that our node calls | `comfy node install comfyui-viggle-animate-h3`, or install it from the [Registry](https://registry.comfy.org/nodes/comfyui-viggle-animate-h3) / ComfyUI-Manager (its GitHub repository is no longer public) |
 | **[ComfyUI-VideoHelperSuite](https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite)** | `Load Video` and `Video Combine` in the workflow | ComfyUI-Manager, or `git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite ComfyUI/custom_nodes/` |
 
 `comfy_kitchen` (the Sol-Attn kernels) ships with current ComfyUI; if it is missing the router falls
