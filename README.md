@@ -25,8 +25,8 @@ Give it a driving clip and one still, and the character in the still does the cl
 
 ## Credits
 
-This project exists because of **Viggle-Animate** — [the model](https://huggingface.co/Viggle/Viggle-Animate)
-and [its official ComfyUI nodes](https://github.com/Saganaki22/ComfyUI-Viggle-Animate-H3).
+This project exists because of **Viggle-Animate** — the finetune released by the Viggle team:
+[huggingface.co/Viggle/Viggle-Animate](https://huggingface.co/Viggle/Viggle-Animate).
 
 Their guidance on **how to quantize and prune the model** is what our INT8 checkpoint is built on.
 The same goes for the pipeline: the conditioning order (driving footage first, the still nested on
@@ -34,6 +34,11 @@ the clip's short edge), the rule that a reference should be a repainted frame of
 the recommended sampling settings are all from Viggle-Animate. **We did not invent any of it.** We
 followed it, converted the weights, and packaged it so it is easy to run — and we are grateful to
 the Viggle-Animate authors for sharing it.
+
+For the ComfyUI side we built on the community node pack
+[ComfyUI-Viggle-Animate-H3](https://github.com/Saganaki22/ComfyUI-Viggle-Animate-H3) — that pack is
+not an official Viggle release, and our thanks go to its author as well. Our node wraps the same
+pipeline and keeps its behaviour.
 
 The base model is **[MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3)**, under the MiniMax H3
 Community License. The node runs on [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with
