@@ -23,6 +23,8 @@ pipeline_tag: image-to-video
 **[Viggle-Animate](https://huggingface.co/Viggle/Viggle-Animate)** in one ComfyUI node, on a quantized checkpoint, with automatic attention routing.
 Give it a driving clip and one still, and the character in the still does the clip.
 
+Source and issues: [github.com/aireet/viggle-animate-workflow](https://github.com/aireet/viggle-animate-workflow) · weights and model card: [this repository](https://huggingface.co/xuexuexue1994/viggle-animate-workflow).
+
 ## See it first
 
 | input: driving clip | input: reference still | output: the render |
