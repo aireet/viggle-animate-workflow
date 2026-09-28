@@ -27,9 +27,9 @@ Source and issues: [github.com/aireet/viggle-animate-workflow](https://github.co
 
 ## See it first
 
-| input: driving clip | input: reference still | output: the render |
+| input: the driving clip | input: the reference still | output: the render |
 |---|---|---|
-| <img src="examples/dog-singer/driving-frame.png" width="290"> | <img src="examples/dog-singer/reference.png" width="290"> | <img src="examples/dog-singer/result-preview.gif" width="290"> |
+| <img src="examples/dog-singer/driving-preview.gif" width="290"> | <img src="examples/dog-singer/reference.png" width="290"> | <img src="examples/dog-singer/result-preview.gif" width="290"> |
 
 The full files are in [`examples/dog-singer/`](examples/dog-singer): the driving clip, the still and
 the result as an mp4. Settings: 6 steps, 124 frames, flow shift 3/3, seed 833969396491604.
