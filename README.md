@@ -23,7 +23,7 @@ pipeline_tag: image-to-video
 **[Viggle-Animate](https://huggingface.co/Viggle/Viggle-Animate)** in one ComfyUI node, on a quantized checkpoint, with automatic attention routing.
 Give it a driving clip and one still, and the character in the still does the clip.
 
-Source and issues: [github.com/aireet/viggle-animate-workflow](https://github.com/aireet/viggle-animate-workflow) · weights and model card: [this repository](https://huggingface.co/xuexuexue1994/viggle-animate-workflow).
+Source and issues: [github.com/aireet/viggle-animate-workflow](https://github.com/aireet/viggle-animate-workflow) · weights and model card: [this repository](https://huggingface.co/aireet/viggle-animate-workflow).
 
 ## See it first
 
@@ -133,7 +133,7 @@ ComfyUI's own docs) or the loaders will show empty dropdowns.
 ```sh
 # 1. the checkpoint (19.6 GiB: needs git-lfs for the clone, or use `hf download` instead)
 git lfs install
-git clone https://huggingface.co/xuexuexue1994/viggle-animate-workflow
+git clone https://huggingface.co/aireet/viggle-animate-workflow
 
 # 2. the node pack, and the `slimdit` package that it imports
 cp -r viggle-animate-workflow/comfyui/ComfyUI-SlimDiT ComfyUI/custom_nodes/
