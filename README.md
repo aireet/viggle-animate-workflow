@@ -80,6 +80,13 @@ MiniMax-H3's attention is touched, so other models in the same ComfyUI keep work
 
 ## Example — the dog singer
 
+| input: driving clip | input: reference still | output |
+|---|---|---|
+| ![driving clip](examples/dog-singer/driving-frame.png) | ![reference still](examples/dog-singer/reference.png) | ![result](examples/dog-singer/result-preview.gif) |
+
+The full files live in [`examples/dog-singer/`](examples/dog-singer) — the driving clip, the
+reference still, and the result as an mp4.
+
 | | |
 |---|---|
 | driving clip | `mixkit-51741-video-51741-hd-ready.mp4`, 1280x720, 241 frames (~10 s) |
